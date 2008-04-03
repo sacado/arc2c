@@ -1,0 +1,12 @@
+This is the Arc to C compiler.
+
+Arc is the new Lisp from Paul Graham (http://arclanguage.org). It's official release is currently implemented as an interpreter above mzscheme.
+
+Here, I'm trying to make a compiler translating Arc code to C code, written in Arc. The goal is to see if (and how) a dynamically typed language conceived for exploratory programing and protoyping can be compiled efficiently. The current implementation is based on a tutorial proposed by Marc Feeley : The 90 Minute Scheme to C compiler (http://www.iro.umontreal.ca/~boucherd/mslug/meetings/20041020/minutes-en.html).
+
+Currently, the compiler implements numerical operations on fixnums (+, -, *, <, >, <=, >=, is, isnt), comparison on symbols (is, isnt) and cons cells construction, deconstruction and comparison (cons, car, cdr, is, isnt). All values can be printed with pr or prn. The language supports first class continuations (with ccc) and is tail-recursive. Memory is managed via Boehm's Garbage Collector.
+
+The let, set, quote, fn and if syntaxes are partially implemented. "set" only works for global variables (particularily functions). "if" only works with 2 or 3 arguments. No special syntax is implemented yet. Variable arity functions are not supported yet. Cons cells cannot be quoted yet. Primitive operations cannot be overriden. If you call an undefined function, the program will silently crash.
+
+Use freely, at your own risk.
+

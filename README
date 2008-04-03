@@ -10,3 +10,8 @@ The let, set, quote, fn and if syntaxes are partially implemented. "set" only wo
 
 Use freely, at your own risk.
 
+To use the compiler, in arc :
+
+(load "arc2c.arc")
+(compile-file "foo.arc")
+

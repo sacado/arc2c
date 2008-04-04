@@ -1,4 +1,4 @@
-(load "debut.arc")
+(load "structs.arc")
 (load "xe.arc")
 (load "closures.arc")
 (load "cps.arc")

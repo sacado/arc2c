@@ -217,8 +217,7 @@
   (= xe-global-cte* (make-initial-cte))
   (xe
     (w/infile f filename
-      (let res '()
-        (whilet it (read f) (push it res))
-        (cons 'do (rev res))))
+      (cons 'do (readall f
+                         (list 'used-to-detect-eof))))
     '()))
 

@@ -173,7 +173,7 @@ int nsyms;
   if (AFIX(y))\\
     TOS() = SYM2OBJ(\"int\");\\
   else{\\
-    p = OBJ2PTR(y);\\
+    p = (obj *) y;\\
     switch ((char) *p){\\
       case T_PAIR: TOS() = SYM2OBJ(\"cons\"); break;\\
       case T_SYM: TOS() = SYM2OBJ(\"sym\"); break;\\
@@ -238,9 +238,9 @@ obj SYM2OBJ (char * s){ /* Find a symbol, or save it if it's the first time */
     exit (1);
   }
 
-  syms[nsyms]        = GC_MALLOC (sizeof(symbol));
+  syms[nsyms]        = malloc (sizeof(symbol)); /* Symbols never go away, then can be malloc-ed */
   syms[nsyms]->type  = T_SYM;
-  syms[nsyms]->value = (char *) GC_MALLOC (strlen (s) + 1);
+  syms[nsyms]->value = (char *) malloc (strlen (s) + 1);
   strcpy (syms[nsyms]->value, s);
 
   return (obj) syms[nsyms++];

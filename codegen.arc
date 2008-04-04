@@ -372,11 +372,12 @@ int main (int argc, char * argv[]) {
          chain
          `(
             ; --------List form
-            (,to-3-if         "3-arg-if TRANSFORMATION")
+            (,to-3-if "3-arg-if TRANSFORMATION")
             ; --------AST form
             (,[xe _ ()] "AST TRANSFORMATION")
             (,cps-convert "CPS-CONVERSION")
             (,closure-convert "CLOSURE-CONVERSION")))
+    (= xe-global-cte* (make-initial-cte))
     (= d
       (reduce (fn (old-d (f desc))
                 (let new-d (f old-d)

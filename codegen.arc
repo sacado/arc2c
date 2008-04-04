@@ -293,7 +293,7 @@ int main (int argc, char * argv[]) {
       (cons 'do (map source ast!subx))
     (aquote ast)
       (cons 'quote ast!subx)
-      (err "unknown ast" ast)))
+      ast))
 
 (def ds (ast)
    (if
@@ -324,23 +324,24 @@ int main (int argc, char * argv[]) {
 (def strip-ext (filename)
   (cut filename 0 (pos #\. filename)))
 
-(def compile-file (filename)
-  (let ast (parse-file filename)
-    (prn "-------------------------- AST:")
-    (prn (source ast))
-
-    (let ast-after-cps (cps-convert ast)
-      (prn "-------------------------- AST AFTER CPS-CONVERSION:")
-      (prn (source ast-after-cps))
-
-      (let ast-after-cc (closure-convert ast-after-cps)
-        (prn "-------------------------- AST AFTER CLOSURE-CONVERSION:")
-        (prn (source ast-after-cc))
-
-        (let code (code-generate ast-after-cc)
-          (prn "-------------------------- C CODE:")
-          ;(prn (cadr code))
-          (w/outfile f (+ (strip-ext filename) ".c")
-            (w/stdout f
-              (prn (liststr code)))))))))
+(def compile-file (filename (o debugmode t))
+  (with (d (w/infile s filename (readall s (list 'detect-eof)))
+         chain
+         `(
+            ; --------List form
+            ; --------AST form
+            (,[xe _ ()]       "AST TRANSFORMATION")
+            (,cps-convert     "CPS-CONVERSION")
+            (,closure-convert "CLOSURE-CONVERSION")))
+    (= d
+      (reduce (fn (old-d (f desc))
+                (let new-d (f old-d)
+                  (when debugmode
+                    (prn "------------------------------ " desc)
+                    (prn (source new-d)))
+                  new-d))
+              chain d))
+    (w/outfile f (+ (strip-ext filename) ".c")
+      (w/stdout f
+        (prn:liststr:code-generate d)))))
 

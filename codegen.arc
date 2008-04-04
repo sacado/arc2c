@@ -362,6 +362,25 @@ int main (int argc, char * argv[]) {
       ; else
         code)))
 
+; When self-compiling, probably need to define
+; ssyntax and ssexpand lib functions
+(def symbol-syntax (l)
+  (code-walk code l
+    (if
+      (and (acons code) (ssyntax:car code))
+        (let (fun . args) code
+          (zap ssexpand fun)
+          (if (caris fun 'compose)
+              ((afn ((fun . rest))
+                 (if rest
+                     `(,fun ,(self rest))
+                     `(,fun ,@args)))
+               (cdr fun))
+              `(,fun ,@args)))
+      (ssyntax code)
+        (ssexpand code)
+      code)))
+
 ;------------------------------------------------------------------------------
 
 (def strip-ext (filename)
@@ -372,6 +391,7 @@ int main (int argc, char * argv[]) {
          chain
          `(
             ; --------List form
+            (,symbol-syntax "ssyntax TRANSFORMATION")
             (,to-3-if "3-arg-if TRANSFORMATION")
             ; --------AST form
             (,[xe _ ()] "AST TRANSFORMATION")

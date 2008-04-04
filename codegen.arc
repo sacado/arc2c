@@ -118,6 +118,9 @@
       code-suffix*))))
 
 (= code-prefix* "
+
+#define GC_DEBUG
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -130,13 +133,13 @@
 typedef long obj;
 
 typedef struct {
-  char type; /* T_PAIR */
+  long type; /* T_PAIR */
   obj car;
   obj cdr;
 } pair;
 
 typedef struct {
-  char type; /* T_SYM */
+  long type; /* T_SYM */
   char * value;
 } symbol;
 
@@ -147,20 +150,17 @@ obj * sp;
 symbol * syms[MAX_SYMS]; /* To be replaced by a hash table */
 int nsyms;
 
-#define AFIX(o) (((o) & 1) == 0) /* the last bit is 0 : it's a fixnum */
-#define APTR(o) ((o) & 1)      /* It's not a fixnum : it's a ref to something else */
-#define ASYM(o) (OBJ2PTR(o)[0] == T_SYM)
-#define APAIR(o) (OBJ2PTR(o)[0] == T_PAIR)
+#define AFIX(o) ((o) & 1)     /* the last bit is 0 : it's a fixnum */
+#define APTR(o) (!((o) & 1))  /* It's not a fixnum : it's a ref to something else */
+#define ASYM(o) (((obj*)(o))[0] == T_SYM)
+#define APAIR(o) (((obj*)(o))[0] == T_PAIR)
 
-#define FIX2OBJ(n) ((n) << 1)
+#define FIX2OBJ(n) (((n) << 1) + 1)
 #define OBJ2FIX(o) ((o) >> 1)
-
-#define PTR2OBJ(p) ((obj)(p) + 1)
-#define OBJ2PTR(o) ((obj*)((o) - 1)) 
 
 #define GLOBAL(i) global[i]
 #define LOCAL(i) stack[i]
-#define CLOSURE_REF(self,i) OBJ2PTR(self)[i]
+#define CLOSURE_REF(self,i) ((obj *)(self))[i]
 
 #define TOS() sp[-1]
 #define PUSH(x) *sp++ = x
@@ -185,13 +185,13 @@ int nsyms;
 #define GT() { obj y = POP(); TOS() = TOS() > y ? TOBJ : NILOBJ; }
 #define LE() { obj y = POP(); TOS() = TOS() <= y ? TOBJ : NILOBJ; }
 #define GE() { obj y = POP(); TOS() = TOS() >= y ? TOBJ : NILOBJ; }
-#define ADD() { obj y = POP(); TOS() = TOS() + y; }
-#define SUB() { obj y = POP(); TOS() = TOS() - y; }
-#define MUL() { obj y = POP(); TOS() = OBJ2FIX(TOS()) * y; }
+#define ADD() { long y = OBJ2FIX(POP()); TOS() = FIX2OBJ(OBJ2FIX(TOS()) + y); }
+#define SUB() { long y = OBJ2FIX(POP()); TOS() = FIX2OBJ(OBJ2FIX(TOS()) - y); }
+#define MUL() { long y = OBJ2FIX(POP()); TOS() = FIX2OBJ(OBJ2FIX(TOS()) * y); }
 
-#define CONS() { pair * p = GC_MALLOC(sizeof(pair)); p->type = T_PAIR ; p->cdr = POP(); p->car = POP(); PUSH(PTR2OBJ(p)); }
-#define CAR() { pair * p = (pair *) (OBJ2PTR(POP())); PUSH(p->car); }
-#define CDR() { pair * p = (pair *) (OBJ2PTR(POP())); PUSH(p->cdr); }
+#define CONS() { pair * p = GC_MALLOC (sizeof(pair)); p->type = T_PAIR ; p->cdr = POP(); p->car = POP(); PUSH((obj)p); }
+#define CAR() { pair * p = (pair *) POP(); PUSH((obj)(p->car)); }
+#define CDR() { pair * p = (pair *) POP(); PUSH((obj)(p->cdr)); }
 
 #define PRN() { PR(); printf (\"\\n\");}
 
@@ -203,11 +203,11 @@ void PR(){
   if (AFIX(y))
     printf (\"%ld\", OBJ2FIX(y));
   else if (ASYM(y)){
-    s = (symbol *) OBJ2PTR(y);
+    s = (symbol *) y;
     printf (\"%s\", s->value);
   }
   else if (APAIR(y)){
-    p = (pair *) (OBJ2PTR(y));
+    p = (pair *) y;
     printf (\"( \");
     PUSH(p->car); PR(); POP();
     printf (\" . \");
@@ -221,17 +221,17 @@ void PR(){
 
 #define BEGIN_CLOSURE(label,nbfree) closure = GC_MALLOC(sizeof(obj) * nbfree + 1);
 #define INICLO(i) closure[i] = POP();
-#define END_CLOSURE(label,nbfree) closure[0] = label; PUSH(PTR2OBJ(closure));
+#define END_CLOSURE(label,nbfree) closure[0] = label; PUSH((obj)closure);
 
 #define BEGIN_JUMP(nbargs) sp = stack;
-#define END_JUMP(nbargs) pc = OBJ2PTR(LOCAL(0))[0]; goto jump;
+#define END_JUMP(nbargs) pc = ((obj *)LOCAL(0))[0]; goto jump;
 
 obj SYM2OBJ (char * s){ /* Find a symbol, or save it if it's the first time */
   int i;
 
   for (i = 0 ; i < nsyms ; i++)
     if (strcmp (s, syms[i]->value) == 0) /* found it */
-      return PTR2OBJ(syms[i]);
+      return (obj) syms[i];
 
   if (nsyms == MAX_SYMS){ /* Bad luck, really... */
     fprintf (stderr, \"Sorry, we just ran out of symbols. Please come back later...\\n\");
@@ -243,7 +243,7 @@ obj SYM2OBJ (char * s){ /* Find a symbol, or save it if it's the first time */
   syms[nsyms]->value = (char *) GC_MALLOC (strlen (s) + 1);
   strcpy (syms[nsyms]->value, s);
 
-  return PTR2OBJ(syms[nsyms++]);
+  return (obj) syms[nsyms++];
 }
 
 obj execute (void)
@@ -262,6 +262,7 @@ obj execute (void)
 }
 
 int main (int argc, char * argv[]) {
+  GC_INIT();
   execute();
   return 0;
 }
@@ -293,7 +294,7 @@ int main (int argc, char * argv[]) {
       (cons 'do (map source ast!subx))
     (aquote ast)
       (cons 'quote ast!subx)
-      ast))
+      (err "unknown ast" ast)))
 
 (def ds (ast)
    (if
@@ -316,7 +317,7 @@ int main (int argc, char * argv[]) {
          (cons 'lam (list 'fn (map [_ 'uid] ast!params) (ds (car ast!subx))))
       (aseq ast)
          (cons 'seq (cons 'do (map ds ast!subx)))
-         (err "unknown ast" ast)))
+         ast))
 
 
 ;------------------------------------------------------------------------------
@@ -330,8 +331,8 @@ int main (int argc, char * argv[]) {
          `(
             ; --------List form
             ; --------AST form
-            (,[xe _ ()]       "AST TRANSFORMATION")
-            (,cps-convert     "CPS-CONVERSION")
+            (,[xe _ ()] "AST TRANSFORMATION")
+            (,cps-convert "CPS-CONVERSION")
             (,closure-convert "CLOSURE-CONVERSION")))
     (= d
       (reduce (fn (old-d (f desc))
@@ -344,4 +345,3 @@ int main (int argc, char * argv[]) {
     (w/outfile f (+ (strip-ext filename) ".c")
       (w/stdout f
         (prn:liststr:code-generate d)))))
-

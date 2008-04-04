@@ -211,7 +211,7 @@
       (push v xe-global-cte*)
       v)))
 
-(= xe-global-cte* '())
+(= xe-global-cte* (make-initial-cte))
 
 (def parse-file (filename)
   (= xe-global-cte* (make-initial-cte))

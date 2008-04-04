@@ -294,7 +294,9 @@ int main (int argc, char * argv[]) {
       (cons 'do (map source ast!subx))
     (aquote ast)
       (cons 'quote ast!subx)
-      (err "unknown ast" ast)))
+      ; if unknown AST, then probably still in list form
+      ; (cref driver)
+      ast))
 
 (def ds (ast)
    (if
@@ -366,11 +368,11 @@ int main (int argc, char * argv[]) {
   (cut filename 0 (pos #\. filename)))
 
 (def compile-file (filename (o debugmode t))
-  (with (d (w/infile s filename (cons do (readall s (list 'detect-eof))))
+  (with (d (w/infile s filename (cons 'do (readall s (list 'detect-eof))))
          chain
          `(
             ; --------List form
-            ;(,to-3-if         "3-arg-if TRANSFORMATION")
+            (,to-3-if         "3-arg-if TRANSFORMATION")
             ; --------AST form
             (,[xe _ ()] "AST TRANSFORMATION")
             (,cps-convert "CPS-CONVERSION")

@@ -318,6 +318,46 @@ int main (int argc, char * argv[]) {
          (cons 'seq (cons 'do (map ds ast!subx)))
          (err "unknown ast" ast)))
 
+; abstract away avoiding ' and the quoted parts of `
+; body *must* return the value in 'var if it won't
+; change anything
+(mac code-walk (var code . body)
+  (w/uniq usercode
+    `(let ,usercode (fn (,var) ,@body)
+       (*code-walk-internal ,usercode ,code))))
+
+(def *code-walk-internal (usercode code)
+  (if (acons code)
+      (if
+        (is (car code) 'quote)
+          code
+        (is (car code) 'quasiquote)
+          (list 'quasiquote
+             ((rfn quasiwalk (code)
+                 (if (acons code)
+                     (if
+                       (is (car code) 'unquote)
+                         (list 'unquote (*code-walk-internal usercode
+                                                             (cadr code)))
+                       (is (car code) 'unquote-splicing)
+                         (list 'unquote (*code-walk-internal usercode
+                                                             (cadr code)))
+                       ; else
+                         (map quasiwalk code))
+                     code))
+               (cadr code)))
+        ; else
+          (map [*code-walk-internal usercode _] (usercode code)))
+      (usercode code)))
+
+(def to-3-if (l)
+  (code-walk code l
+    (if
+      (and (caris code 'if) (len> code 4))
+        (let (_ c v . rest) code
+          `(if ,c ,v (if ,@rest)))
+      ; else
+        code)))
 
 ;------------------------------------------------------------------------------
 
@@ -325,10 +365,11 @@ int main (int argc, char * argv[]) {
   (cut filename 0 (pos #\. filename)))
 
 (def compile-file (filename (o debugmode t))
-  (with (d (w/infile s filename (readall s (list 'detect-eof)))
+  (with (d (w/infile s filename (cons do (readall s (list 'detect-eof))))
          chain
          `(
             ; --------List form
+            ;(,to-3-if         "3-arg-if TRANSFORMATION")
             ; --------AST form
             (,[xe _ ()]       "AST TRANSFORMATION")
             (,cps-convert     "CPS-CONVERSION")

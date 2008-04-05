@@ -391,6 +391,23 @@ int main (int argc, char * argv[]) {
         (ssexpand code)
       code)))
 
+; handles (toplevel) 'load and 'require
+; inefficiency note: allocs a lot of cons cells
+(def include-files (l)
+  (mappend
+    (fn (e)
+      ; if it's a 'load or 'require, include it
+      (if (and (acons e) (in (car e) 'load 'require))
+          (let (_ file . oops) e
+            (when oops
+              (err:string "Too many parameters to: " (car e)))
+            ; make sure to recursively handle including files
+            (include-files
+              (w/infile s file
+                (readall s (list 'detect-eof)))))
+          (list e)))
+    l))
+
 ;------------------------------------------------------------------------------
 
 (def strip-ext (filename)
@@ -401,6 +418,15 @@ int main (int argc, char * argv[]) {
          chain
          `(
             ; --------List form
+            (,include-files "FILE INCLUSION")
+            ; NOTE: all the 'code-walk passes might be
+            ; better off in a single pass (just use a large
+            ; 'if block).  Especially with regards to macros
+            ; and symbol syntax: a ssyntax might emit a macro,
+            ; which might emit a ssyntax, which might emit
+            ; a macro... 'code-walk can actually handle this
+            ; but only if macros and ssyntax expansion are
+            ; in the same 'code-walk block
             (,symbol-syntax "ssyntax TRANSFORMATION")
             (,to-3-if "3-arg-if TRANSFORMATION")
             ; --------AST form

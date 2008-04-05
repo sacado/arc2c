@@ -1,0 +1,8 @@
+(prn 'ccc-test)
+(load "arc2c-test/ccc-test.arc")
+(prn 'if-test)
+(load "arc2c-test/if-test.arc")
+(prn 'ss-test)
+(load "arc2c-test/ss-test.arc")
+(prn 'load-load-test)
+(require "arc2c-test/load-load-test.arc")

@@ -330,28 +330,38 @@ int main (int argc, char * argv[]) {
        (*code-walk-internal ,usercode ,code))))
 
 (def *code-walk-internal (usercode code)
-  (if (acons code)
-      (if
-        (is (car code) 'quote)
-          code
-        (is (car code) 'quasiquote)
-          (list 'quasiquote
-             ((rfn quasiwalk (code)
-                 (if (acons code)
-                     (if
-                       (is (car code) 'unquote)
-                         (list 'unquote (*code-walk-internal usercode
-                                                             (cadr code)))
-                       (is (car code) 'unquote-splicing)
-                         (list 'unquote (*code-walk-internal usercode
-                                                             (cadr code)))
-                       ; else
-                         (map quasiwalk code))
-                     code))
-               (cadr code)))
-        ; else
-          (map [*code-walk-internal usercode _] (usercode code)))
-      (usercode code)))
+  (let pass-to-user
+       (fn (c)
+         (let new-code (usercode c)
+           (if (isnt new-code c)
+               ; if change, rewalk the new code
+               ; (don't move on unless code is stable)
+               (*code-walk-internal usercode new-code)
+               (if (acons new-code)
+                   (map [*code-walk-internal usercode _] new-code)
+                   new-code))))
+    (if (acons code)
+        (if
+          (is (car code) 'quote)
+            code
+          (is (car code) 'quasiquote)
+            (list 'quasiquote
+               ((rfn quasiwalk (code)
+                   (if (acons code)
+                       (if
+                         (is (car code) 'unquote)
+                           (list 'unquote (*code-walk-internal usercode
+                                                               (cadr code)))
+                         (is (car code) 'unquote-splicing)
+                           (list 'unquote (*code-walk-internal usercode
+                                                               (cadr code)))
+                         ; else
+                           (map quasiwalk code))
+                       code))
+                 (cadr code)))
+          ; else
+            (pass-to-user code))
+        (pass-to-user code))))
 
 (def to-3-if (l)
   (code-walk code l

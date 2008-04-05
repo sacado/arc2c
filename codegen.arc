@@ -438,7 +438,7 @@ int main (int argc, char * argv[]) {
                 (let new-d (f old-d)
                   (when debugmode
                     (prn "------------------------------ " desc)
-                    (prn (source new-d)))
+                    (ppr-sexp (source new-d)))
                   new-d))
               chain d))
     (w/outfile f (+ (strip-ext filename) ".c")

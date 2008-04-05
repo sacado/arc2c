@@ -246,9 +246,8 @@ obj SYM2OBJ (char * s){ /* Find a symbol, or save it if it's the first time */
   return (obj) syms[nsyms++];
 }
 
-obj execute (void)
+obj execute (int pc)
 {
-  int pc     = 0;
   sp         = stack;
   obj NILOBJ = SYM2OBJ (\"nil\");
   obj TOBJ   = SYM2OBJ (\"t\");
@@ -263,7 +262,7 @@ obj execute (void)
 
 int main (int argc, char * argv[]) {
   GC_INIT();
-  execute();
+  execute(0);
   return 0;
 }
 ")

@@ -78,15 +78,9 @@
 
 (= seq-num* 0)
 
-(def to-str (x)
-  (coerce x 'string))
-
-(def to-sym (x)
-  (coerce x 'sym))
-
 (def new-var (id)
   (++ seq-num*)
-  (make-var id (to-sym (+ (to-str id) "@" (to-str seq-num*)))))
+  (make-var id (sym (string id "@" seq-num*))))
 
 (def new-global (id)
   (make-var id id))

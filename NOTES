@@ -1,0 +1,63 @@
+These are descriptions of the current implementation, as best as I can
+determine them.
+
+
+Stack: (last modified Apr 6, 2008)
+
+The implementation uses an emulated stack.  Objects are pushed on the stack
+and are popped off by primitive operations.  When functions are called, the
+stack is *reset* and loaded with the arguments to the function.
+
+
+Function labels: (last modified Apr 6, 2008)
+
+All function calls are implemented as GOTO's.  Each function is thus assigned
+a label.  However, unfortunately standard C does not support passing GOTO-able
+labels as values (it's possible in GCC by using the &&label extension).  Thus, 
+functions are instead represented by longs, and each label is a "case" label
+in a switch structure.
+
+When jumping, the calling function assigns the destination in a C-local
+variable, pc.  Then the calling function GOTOs the top of the switch structure
+(cref. jump label), which dispatches based on the pc value.  cref. END_JUMP()
+C-macro.
+
+
+Function objects: (last modified Apr 6, 2008)
+
+Functions are represented by a "closure" type which is simply a flat array
+of "obj".  It's *not* typed as of this writing, so it's not possible to
+get a legitimate type for a function.
+
+The array's [0] element is a long.  This long is the numeric
+representation of the function's "case" label.  Note that it is a real C
+long, not an Arc fixnum represented as an obj (which happens to be a long)
+
+Closure-captured variables are stored in the rest of the array as a flat
+representation.
+
+When a closure is created, variables are copied from any parent closure.
+Note that this also means closures are currently *not* shared - so setting
+a closured variable (which is not supported yet) will replace only that
+function's copy, and will not change the closured variables of other
+functions created within the same closure:
+
+  (set f (let x 0
+              (cons (fn () x)
+                    (fn (v) (set x v)))))
+  (prn ((car f)))
+  ((cdr f) 'hmm)
+  (prn ((car f)))
+
+
+Function calls: (last modified Apr 6, 2008)
+
+Function calls are started by the BEGIN_JUMP() and END_JUMP() C-macros.
+Before entering BEGIN_JUMP(), the function's parameters are pushed on the
+stack.
+
+BEGIN_JUMP() then resets the stack; the function's parameters are then copied
+from the previous stack top to the new stack.  END_JUMP() then gets the label
+from the 0'th parameter, sets this to the pc, and jumps to the top of the
+switch.
+

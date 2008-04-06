@@ -37,6 +37,16 @@
     singleton list "
   (if (alist lst) (makeproper lst) (cons lst nil)))
 
+(def map-improper (f l)
+  " A mapping function which supports both
+    proper and improper lists; mapping on an
+    improper list returns an improper list "
+  (if
+    (acons l)
+      (cons (f:car l) (map-improper f (cdr l)))
+    l
+      (f l)))
+
 ;------------------------------------------------------------------------------
 
 ; free variables

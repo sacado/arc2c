@@ -163,14 +163,7 @@
         (withs
           ; support proper and improper lists
           ; as argument list: (arg arg) or (arg . arg)
-          (params ((afn (l)
-                     (if
-                       (acons l)
-                         (let (e . rest) l
-                           (cons (new-var e) (self rest)))
-                       l
-                         (new-var l)))
-                   exp-params)
+          (params (map-improper new-var exp-params)
            proper-params (if (alist params) (makeproper params) (cons params nil))
            new-cte (extend proper-params cte))
           (make-lam (list:xe (cons 'do body) new-cte) params))

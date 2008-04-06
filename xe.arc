@@ -137,7 +137,7 @@
 (= macset* (make-macro 'set
   (fn (e cte)
     (if (is (len (cdr e)) 2)
-      (let b (xe-lookup (cadr e) '())
+      (let b (xe-lookup (cadr e) cte)
         (if (avar b)
           (make-set (xe-exprs (cddr e) cte) b)
           (err "can't set a nonvariable" e)))

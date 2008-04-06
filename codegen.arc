@@ -82,7 +82,7 @@
                args (cdr ast!subx)
                n (len args))
               (if (alam fun)
-                (cg-list args fun!params stack-env "\n" (fn (code new-stack-env) (list code (code-gen (car fun!subx) new-stack-env))))
+                (cg-list args (properify fun!params) stack-env "\n" (fn (code new-stack-env) (list code (code-gen (car fun!subx) new-stack-env))))
                 (cg-list args (range 1 n) stack-env "\n" (fn (code new-stack-env)
                   (with
                     (start (len stack-env)
@@ -105,7 +105,14 @@
         (pop lambda-todo)
           (list
             "case " (car x) ":\n\n"
-            (code-gen (car ast!subx) (rev ast!params))
+            ; if variadic, insert variadic handling code
+            (if (dotted ast!params)
+              ; determine the number of required arguments
+              (let num-reqs (- (len:properify ast!params) 1)
+                (list " VARIADIC2LIST(" num-reqs ");\n")))
+            ; <insert code to check that caller passed
+            ; correct number of arguments here>
+            (code-gen (car ast!subx) (rev:properify ast!params))
             "\n\n"
             (compile-all-lambdas))))))
 
@@ -219,11 +226,15 @@ void PR(){
 
 #define HALT() break
 
+//place arguments exceeding nbreq into a list at the top of
+//the stack
+#define VARIADIC2LIST(nbreq) for(PUSH(NILOBJ); num_args > nbreq; num_args--) CONS()
+
 #define BEGIN_CLOSURE(label,nbfree) closure = GC_MALLOC(sizeof(obj) * nbfree + 1);
 #define INICLO(i) closure[i] = POP();
 #define END_CLOSURE(label,nbfree) closure[0] = label; PUSH((obj)closure);
 
-#define BEGIN_JUMP(nbargs) sp = stack;
+#define BEGIN_JUMP(nbargs) {sp = stack; num_args = nbargs;}
 #define END_JUMP(nbargs) pc = ((obj *)LOCAL(0))[0]; goto jump;
 
 obj SYM2OBJ (char * s){ /* Find a symbol, or save it if it's the first time */
@@ -251,6 +262,7 @@ obj execute (int pc)
   sp         = stack;
   obj NILOBJ = SYM2OBJ (\"nil\");
   obj TOBJ   = SYM2OBJ (\"t\");
+  long num_args = 0;
 
   jump: switch (pc) {
 
@@ -269,6 +281,17 @@ int main (int argc, char * argv[]) {
 
 ;------------------------------------------------------------------------------
 
+
+(def map-improper (f l)
+  " A mapping function which supports both
+    proper and improper lists; mapping on an
+    improper list returns an improper list "
+  (if
+    (acons l)
+      (cons (f:car l) (map-improper f (cdr l)))
+    l
+      (f l)))
+
 ; debugging
 
 (def source (ast)
@@ -285,10 +308,11 @@ int main (int argc, char * argv[]) {
       (cons ast!op (map source ast!subx))
     (anapp ast)
       (if (alam (car ast!subx))
-        (list 'let (map (fn (p a) (list p!uid (source a))) ((car ast!subx) 'params) (cdr ast!subx)) (source (car ((car ast!subx) 'subx))))
+        ; actually, shouldn't properify the params, maybe okay since this is debug code, but...
+        (list 'let (map (fn (p a) (list p!uid (source a))) (properify ((car ast!subx) 'params)) (cdr ast!subx)) (source (car ((car ast!subx) 'subx))))
         (map source ast!subx))
     (alam ast)
-      (list 'fn (map [_ 'uid] ast!params) (source (car ast!subx)))
+      (list 'fn (map-improper [_ 'uid] ast!params) (source (car ast!subx)))
     (aseq ast)
       (cons 'do (map source ast!subx))
     (aquote ast)
@@ -297,6 +321,8 @@ int main (int argc, char * argv[]) {
       ; (cref driver)
       ast))
 
+; seems currently unused -
+; note that this function doesn't support varargs
 (def ds (ast)
    (if
       (alit ast)
@@ -337,7 +363,7 @@ int main (int argc, char * argv[]) {
                ; (don't move on unless code is stable)
                (*code-walk-internal usercode new-code)
                (if (acons new-code)
-                   (map [*code-walk-internal usercode _] new-code)
+                   (map-improper [*code-walk-internal usercode _] new-code)
                    new-code))))
     (if (acons code)
         (if
@@ -355,7 +381,7 @@ int main (int argc, char * argv[]) {
                            (list 'unquote (*code-walk-internal usercode
                                                                (cadr code)))
                          ; else
-                           (map quasiwalk code))
+                           (map-improper quasiwalk code))
                        code))
                  (cadr code)))
           ; else

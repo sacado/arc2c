@@ -158,12 +158,23 @@
 
 (= macfn* (make-macro 'fn
   (fn (e cte)
-    (if (>= (len (cdr e)) 1)
-      (withs
-        (params (map new-var (cadr e))
-         new-cte (extend params cte))
-        (make-lam (list:xe (cons 'do (cddr e)) new-cte) params))
-      (err "fn expects a parameter list")))))
+    (let (_ exp-params . body) e
+      (if (>= (len (cdr e)) 1)
+        (withs
+          ; support proper and improper lists
+          ; as argument list: (arg arg) or (arg . arg)
+          (params ((afn (l)
+                     (if
+                       (acons l)
+                         (let (e . rest) l
+                           (cons (new-var e) (self rest)))
+                       l
+                         (new-var l)))
+                   exp-params)
+           proper-params (if (alist params) (makeproper params) (cons params nil))
+           new-cte (extend proper-params cte))
+          (make-lam (list:xe (cons 'do body) new-cte) params))
+        (err "fn expects a parameter list"))))))
 
 (= macdo* (make-macro 'do
   (fn (e cte)

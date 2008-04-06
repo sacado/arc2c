@@ -32,6 +32,11 @@
         (++ result (string elt))))
     result))
 
+(def properify (lst)
+  " Makes an improper list proper, or a non-list into a
+    singleton list "
+  (if (alist lst) (makeproper lst) (cons lst nil)))
+
 ;------------------------------------------------------------------------------
 
 ; free variables
@@ -43,7 +48,7 @@
     (aset ast)
       (union (fv (car ast!subx)) (list ast!var))
     (alam ast)
-      (diff (fv (car ast!subx)) ast!params)
+      (diff (fv (car ast!subx)) (properify ast!params))
     (aquote ast)
       nil
       (union-multi (map fv ast!subx))))

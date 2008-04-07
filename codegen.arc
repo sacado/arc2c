@@ -50,6 +50,12 @@
           (aprim ast)
             (let args ast!subx
               (if
+                (is ast!op '%sharedvar)
+                  (list (cg-args args stack-env) " MAKE_SHAREDVAR();")
+                (is ast!op '%sharedvar-read)
+                  (list (cg-args args stack-env) " READ_SHAREDVAR();")
+                (is ast!op '%sharedvar-write)
+                  (list (cg-args args stack-env) " WRITE_SHAREDVAR();")
                 (is ast!op '%cons) (list (cg-args args stack-env) " CONS();")
                 (is ast!op '%car) (list (cg-args args stack-env) " CAR();") 
                 (is ast!op '%cdr) (list (cg-args args stack-env) " CDR();") 
@@ -150,6 +156,11 @@ typedef struct {
   char * value;
 } symbol;
 
+typedef struct {
+  /*no type - should not be directly accessible by Arc*/
+  obj var;
+} sharedvar;
+
 obj global[NB_GLOBALS];
 obj stack[MAX_STACK];
 obj * closure;
@@ -199,6 +210,10 @@ int nsyms;
 #define CONS() { pair * p = GC_MALLOC (sizeof(pair)); p->type = T_PAIR ; p->cdr = POP(); p->car = POP(); PUSH((obj)p); }
 #define CAR() { pair * p = (pair *) POP(); PUSH((obj)(p->car)); }
 #define CDR() { pair * p = (pair *) POP(); PUSH((obj)(p->cdr)); }
+
+#define MAKE_SHAREDVAR() {sharedvar * p = GC_MALLOC(sizeof(sharedvar)); p->var = POP(); PUSH((obj)p);}
+#define READ_SHAREDVAR() {sharedvar * p = (sharedvar *) POP(); PUSH((obj)(p->var));}
+#define WRITE_SHAREDVAR() {obj v = POP(); sharedvar * p = (sharedvar *) POP(); p->var = v; PUSH(v);}
 
 #define PRN() { PR(); printf (\"\\n\");}
 
@@ -446,6 +461,7 @@ int main (int argc, char * argv[]) {
             (,to-3-if "3-arg-if TRANSFORMATION")
             ; --------AST form
             (,[xe _ ()] "AST TRANSFORMATION")
+            (,sharedvars-convert-assert "SHARED VARIABLE CONVERSION")
             (,cps-convert "CPS-CONVERSION")
             (,closure-convert "CLOSURE-CONVERSION")))
     (= xe-global-cte* (make-initial-cte))

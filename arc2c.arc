@@ -4,4 +4,5 @@
 (load "cps.arc")
 (load "utils.arc")
 (load "codegen.arc")
+(load "sharedvars.arc")
 

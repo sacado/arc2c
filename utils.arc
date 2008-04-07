@@ -63,3 +63,13 @@
       nil
       (union-multi (map fv ast!subx))))
 
+; local variables that are set
+
+(def lv-set (ast)
+  (if
+    (and (aset ast) (~aglobal ast!var))
+      (list ast!var)
+    (aquote ast)
+      nil
+      (union-multi (map lv-set ast!subx))))
+

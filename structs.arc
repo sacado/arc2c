@@ -20,6 +20,8 @@
 (def amacro (x)
   (and (isa x 'table) (is x!type 'macro)))
 
+;----------------------------------------AST's
+
 ; a literal: number or t/nil
 ; (might be extended to chars someday)
 (def make-lit (subx val)

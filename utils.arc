@@ -68,8 +68,28 @@
 (def lv-set (ast)
   (if
     (and (aset ast) (~aglobal ast!var))
-      (list ast!var)
+      (union (lv-set (car ast!subx)) (list ast!var))
     (aquote ast)
       nil
       (union-multi (map lv-set ast!subx))))
+
+; global variables that are set
+
+(def gv-set (ast)
+  (if
+    (and (aset ast) (aglobal ast!var))
+      (union (gv-set (car ast!subx)) (list ast!var))
+    (aquote ast)
+      nil
+      (union-multi (map gv-set ast!subx))))
+
+; global variables that are read
+
+(def gv-read (ast)
+  (if
+    (and (aref ast) (aglobal ast!var))
+      (list ast!var)
+    (aquote ast)
+      nil
+      (union-multi (map gv-read ast!subx))))
 

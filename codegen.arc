@@ -7,10 +7,15 @@
     (lambda-todo '()
      lambda-count 0
      global-vars (fv ast)
-     add-lambda [let i lambda-count (push (cons lambda-count _) lambda-todo) (++ lambda-count) i]
-     ; private functions
+     add-lambda [do1 lambda-count (push (cons lambda-count _) lambda-todo) (++ lambda-count)]
+     constant-todo '()
+     constant-count 0
+     add-constant [do1 constant-count
+                       (push _ constant-todo)
+                       (++ constant-count)]
      code-gen nil
-     compile-all-lambdas nil)
+     compile-all-lambdas nil
+     compile-constants nil)
 
   (= code-gen (fn (ast stack-env)
     (let (cg-list cg-args access-var cg) nil
@@ -39,7 +44,9 @@
                 (is val t) (list " PUSH(TOBJ);")
                 (list " PUSH(FIX2OBJ(" val "));")))
           (aquote ast)
-            (list " PUSH(SYM2OBJ(\"" (car ast!subx) "\"));")
+            (let val (car ast!subx)
+              (list " PUSH(QUOTE_CONSTANTS[" (add-constant val) "]"
+                    "/* '" (tostring:write val) " */);"))
           (aref ast)
             (list " PUSH(" (access-var ast!var stack-env) ");")
           (aset ast)
@@ -122,11 +129,41 @@
             "\n\n"
             (compile-all-lambdas))))))
 
+  (= compile-constants
+    (fn (cs)
+      (with (i 0
+             express nil)
+        (= express
+           (fn (e)
+             (if
+               (number e) (list "FIX2OBJ(" e ")")
+               (no e) "SYM2OBJ(\"nil\")"
+               (isa e 'sym) (list "SYM2OBJ(" (tostring:write:string e) ")")
+               (acons e)
+                 (list "cons_fun(" (express:car e) ", " (express:cdr e) ")")
+               ;else
+                 (err:string "not supported in quote form: "
+                             (tostring:write e)))))
+        (mapeach c cs
+          (do1
+            (list "QUOTE_CONSTANTS[" i "] = " (express c) ";\n")
+            (++ i))))))
+
   (add-lambda ast)
 
   (let code (compile-all-lambdas)
     (list
-      (list "#define NB_GLOBALS " (len global-vars) "\n"  "#define MAX_STACK " 10000 "\n" code-prefix*)
+      (list "#define NB_GLOBALS " (len global-vars) "\n"  "#define MAX_STACK " 10000 "\n")
+      code-prefix*
+      (if constant-todo
+        ; constants were defined; initialize
+        (list "obj QUOTE_CONSTANTS[" constant-count "];\n"
+              "void init_constants(void){\n"
+              (compile-constants:rev constant-todo)
+              "}\n")
+        ; no constants; dummy initialize
+        "\n#define init_constants()\n")
+      code-execute*
       code
       code-suffix*))))
 
@@ -207,6 +244,14 @@ int nsyms;
 #define SUB() { long y = OBJ2FIX(POP()); TOS() = FIX2OBJ(OBJ2FIX(TOS()) - y); }
 #define MUL() { long y = OBJ2FIX(POP()); TOS() = FIX2OBJ(OBJ2FIX(TOS()) * y); }
 
+obj cons_fun(obj a, obj d){
+  pair * p = GC_MALLOC(sizeof(pair));
+  p->type = T_PAIR;
+  p->car = a;
+  p->cdr = d;
+  return (obj) p;
+}
+
 #define CONS() { pair * p = GC_MALLOC (sizeof(pair)); p->type = T_PAIR ; p->cdr = POP(); p->car = POP(); PUSH((obj)p); }
 #define CAR() { pair * p = (pair *) POP(); PUSH((obj)(p->car)); }
 #define CDR() { pair * p = (pair *) POP(); PUSH((obj)(p->cdr)); }
@@ -271,6 +316,9 @@ obj SYM2OBJ (char * s){ /* Find a symbol, or save it if it's the first time */
 
   return (obj) syms[nsyms++];
 }
+")
+
+(= code-execute* "
 
 obj execute (int pc)
 {
@@ -289,6 +337,7 @@ obj execute (int pc)
 
 int main (int argc, char * argv[]) {
   GC_INIT();
+  init_constants();
   execute(0);
   return 0;
 }

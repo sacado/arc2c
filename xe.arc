@@ -118,9 +118,9 @@
 
 (= macquote* (make-macro 'quote
   (fn (e cte)
-    (if (and (is (len (cdr e)) 1) (~acons e.1))
+    (if (is (len (cdr e)) 1)
       (make-quote (cdr e))
-      (err "quote expects 1 atomic arg")))))
+      (err "quote expects 1 arg")))))
 
 (= macprn* (make-macro 'prn
   (fn (e cte)

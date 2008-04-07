@@ -6,7 +6,7 @@ Here, we are trying to make a compiler translating Arc code to C code, written i
 
 Currently, the compiler implements numerical operations on fixnums (+, -, *, <, >, <=, >=, is, isnt), comparison on symbols (is, isnt) and cons cells construction, deconstruction and comparison (cons, car, cdr, is, isnt). All values can be printed with pr or prn. The language supports first class continuations (with ccc) and is tail-recursive/tail-call-optimizing. Memory is managed via Boehm's Garbage Collector.
 
-The let, set, quote, fn and if syntaxes are partially implemented. "set" only works for global variables (particularily functions). No special syntax is implemented yet. Variable arity functions are not supported yet. Cons cells cannot be quoted yet. Primitive operations cannot be overriden. If you call an undefined function, the program will silently crash.
+The let, set, quote, fn and if syntaxes are partially implemented. "set" only works for global variables (particularily functions). No special syntax is implemented yet. Variable arity functions are not supported yet. Symbols, numbers, and cons cells of symbols, numbers and cons cells can be quoted. Primitive operations cannot be overriden. If you call an undefined function, the program will silently crash.
 
 Use freely, at your own risk. If you want to improve the tool with us, send mail to sacado.sacado@gmail.com.
 

@@ -15,3 +15,5 @@ To use the compiler, in arc :
 (load "arc2c.arc")
 (compile-file "foo.arc")
 
+Notes about the compiler's output code is available in the NOTES file.
+

@@ -23,7 +23,7 @@ variable, pc.  Then the calling function GOTOs the top of the switch structure
 C-macro.
 
 
-Function objects: (last modified Apr 6, 2008)
+Function objects: (last modified Apr 7, 2008)
 
 Functions are represented by a "closure" type which is simply a flat array
 of "obj".  It's *not* typed as of this writing, so it's not possible to
@@ -37,17 +37,9 @@ Closure-captured variables are stored in the rest of the array as a flat
 representation.
 
 When a closure is created, variables are copied from any parent closure.
-Note that this also means closures are currently *not* shared - so setting
-a closured variable (which is not supported yet) will replace only that
-function's copy, and will not change the closured variables of other
-functions created within the same closure:
-
-  (set f (let x 0
-              (cons (fn () x)
-                    (fn (v) (set x v)))))
-  (prn ((car f)))
-  ((cdr f) 'hmm)
-  (prn ((car f)))
+Generally, this means that the actual variables are not shared between
+functions defined in the same lexical scope.  However, mutated local
+variables are handled specially; see the section "mutable local variables".
 
 
 Function calls: (last modified Apr 6, 2008)
@@ -60,4 +52,39 @@ BEGIN_JUMP() then resets the stack; the function's parameters are then copied
 from the previous stack top to the new stack.  END_JUMP() then gets the label
 from the 0'th parameter, sets this to the pc, and jumps to the top of the
 switch.
+
+
+Mutable Local Variables: (last modified Apr 7, 2008)
+
+Closures in arc2c do not share variable space with other closures, even those
+defined in the same lexical scope.  This means that a mutation of one closure
+does not cause a mutation in another closure, even if they are in the same
+scope.
+
+Instead, if a local variable is ever mutated, a "sharedvar" C-struct is used
+to represent that variable.  These are constructed by %sharedvar primitives,
+and are accessed by %sharedvar-write and %sharedvar-read primitives.  For
+example, the following code transformation is done:
+
+  (let x nil
+    (set reader
+      (fn () x))
+    (set writer
+      (fn (v) (set x v))))
+
+  =>
+
+  (let x nil
+    (let shared (%shared-var x)
+      (set reader
+        (fn () (%sharedvar-read shared)))
+      (set writer
+        (fn (v) (%sharedvar-write shared v)))))
+
+In this way, all assignments to local variables are eliminated.
+
+The "sharedvar" objects are completely invisible to the high-level Arc, and
+thus do not have a type code; they are simply a singleton container for the
+mutable local variable.
+
 

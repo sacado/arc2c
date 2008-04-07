@@ -4,7 +4,7 @@
   (if
     (no s1)
       '()
-    (mem (car s1) s2)
+    (some (car s1) s2)
       (diff (cdr s1) s2)
       (cons (car s1) (diff (cdr s1) s2))))
 
@@ -12,7 +12,7 @@
   (if
     (no s1)
       s2
-    (mem (car s1) s2)
+    (some (car s1) s2)
       (union (cdr s1) s2)
       (cons (car s1) (union (cdr s1) s2))))
 
@@ -23,6 +23,13 @@
   (if (no lst)
     base
     (foldl f (f base (car lst)) (cdr lst))))
+
+(def equalset (s1 s2)
+  " Determines if two sets are equal.  Works correctly only
+    if both sets do not have duplicate elements. "
+  (and (is (len s1) (len s2))
+       ; assuming s1 doesn't have duplicates, should work properly
+       (all [some _ s2] s1)))
 
 (def liststr (lst)
   (let result ""

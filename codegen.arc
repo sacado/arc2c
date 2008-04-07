@@ -510,6 +510,7 @@ int main (int argc, char * argv[]) {
             (,to-3-if "3-arg-if TRANSFORMATION")
             ; --------AST form
             (,[xe _ ()] "AST TRANSFORMATION")
+            (,rm-global "UNUSED GLOBAL REMOVAL")
             (,sharedvars-convert-assert "SHARED VARIABLE CONVERSION")
             (,cps-convert "CPS-CONVERSION")
             (,closure-convert "CLOSURE-CONVERSION")))

@@ -24,8 +24,11 @@
          ;   (set used-global (set unused-global value))
          ;   =>
          ;   (set used-global value)
-         (if (and (aset ast) (some ast!var toremove))
+         (if
+           (and (aset ast) (some ast!var toremove))
              (car ast!subx)
+           (aquote ast)
+             ast
              (do
                (= ast!subx (map [remove-assigns toremove _] ast!subx))
                ast))))
@@ -33,7 +36,8 @@
     ; from within sequences
     (= remove-consts
        (fn (ast)
-         (if (aseq ast)
+         (if
+           (aseq ast)
              (do
                (= ast!subx
                   ((afn ((ast . rest))
@@ -53,6 +57,8 @@
                          (cons ast nil)))
                    ast!subx))
                ast)
+           (aquote ast)
+             ast
              (do
                (= ast!subx (map remove-consts ast!subx))
                ast))))

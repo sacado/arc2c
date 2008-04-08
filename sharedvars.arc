@@ -67,6 +67,8 @@
                          (transform-shared ast!subx lookup))
                    '%sharedvar-write)
                  (make-set (transform-shared ast!subx lookup) ast!var))
+             (aquote ast)
+               ast
              ; else
                (do
                  (= ast!subx (transform-shared ast!subx lookup))

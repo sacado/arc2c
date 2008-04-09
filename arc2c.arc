@@ -5,4 +5,5 @@
 (load "utils.arc")
 (load "codegen.arc")
 (load "sharedvars.arc")
+(load "rm-global.arc")
 

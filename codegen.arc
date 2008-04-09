@@ -510,6 +510,7 @@ int main (int argc, char * argv[]) {
             (,to-3-if "3-arg-if TRANSFORMATION")
             ; --------AST form
             (,[xe _ ()] "AST TRANSFORMATION")
+            (,in-global "GLOBAL INLINING")
             (,rm-global "UNUSED GLOBAL REMOVAL")
             (,sharedvars-convert-assert "SHARED VARIABLE CONVERSION")
             (,cps-convert "CPS-CONVERSION")
@@ -517,9 +518,12 @@ int main (int argc, char * argv[]) {
     (= xe-global-cte* (make-initial-cte))
     (= d
       (reduce (fn (old-d (f desc))
-                (let new-d (f old-d)
+                (let new-d nil
                   (when debugmode
-                    (prn "------------------------------ " desc)
+                    (pr "------------------------------ "))
+                  (prn desc)
+                  (= new-d (f old-d))
+                  (when debugmode
                     (ppr-sexp (source new-d)))
                   new-d))
               chain d))

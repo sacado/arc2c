@@ -6,4 +6,5 @@
 (load "codegen.arc")
 (load "sharedvars.arc")
 (load "rm-global.arc")
+(load "in-global.arc")
 

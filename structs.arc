@@ -39,8 +39,8 @@
 
 ; a quoted form
 ; (currently only literals)
-(def make-quote (subx)
-  (listtab `((type quote) (subx ,subx))))
+(def make-quote (subx val)
+  (listtab `((type quote) (subx ,subx) (val ,val))))
 
 (def aquote (x)
   (and (isa x 'table) (is x!type 'quote)))

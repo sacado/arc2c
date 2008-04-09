@@ -44,7 +44,7 @@
                 (is val t) (list " PUSH(TOBJ);")
                 (list " PUSH(FIX2OBJ(" val "));")))
           (aquote ast)
-            (let val (car ast!subx)
+            (let val ast!val
               (list " PUSH(QUOTE_CONSTANTS[" (add-constant val) "]"
                     "/* '" (tostring:write val) " */);"))
           (aref ast)
@@ -370,7 +370,7 @@ int main (int argc, char * argv[]) {
     (aseq ast)
       (cons 'do (map source ast!subx))
     (aquote ast)
-      (cons 'quote ast!subx)
+      (list 'quote ast!val)
       ; if unknown AST, then probably still in list form
       ; (cref driver)
       ast))

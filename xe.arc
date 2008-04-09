@@ -85,7 +85,7 @@
 (= macquote* (make-macro 'quote
   (fn (e cte)
     (if (is (len (cdr e)) 1)
-      (make-quote (cdr e))
+      (make-quote '() (cadr e))
       (err "quote expects 1 arg")))))
 
 (= macset* (make-macro 'set

@@ -72,6 +72,11 @@
   (fn (obj)
     (%type obj)))
 
+; arguably the "wrong" place to put this in, since
+; this is part of arc.arc, but useful anyway
+(set list
+  (fn rest rest))
+
 ;-----------------------------------------------------------------------------
 ))
 

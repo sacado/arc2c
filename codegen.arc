@@ -253,8 +253,8 @@ obj cons_fun(obj a, obj d){
 }
 
 #define CONS() { pair * p = GC_MALLOC (sizeof(pair)); p->type = T_PAIR ; p->cdr = POP(); p->car = POP(); PUSH((obj)p); }
-#define CAR() { pair * p = (pair *) POP(); PUSH((obj)(p->car)); }
-#define CDR() { pair * p = (pair *) POP(); PUSH((obj)(p->cdr)); }
+#define CAR() {if(TOS()!=NILOBJ){ pair * p = (pair *) POP(); PUSH((obj)(p->car)); } else {}}
+#define CDR() {if(TOS()!=NILOBJ){ pair * p = (pair *) POP(); PUSH((obj)(p->cdr)); } else {}}
 
 #define MAKE_SHAREDVAR() {sharedvar * p = GC_MALLOC(sizeof(sharedvar)); p->var = POP(); PUSH((obj)p);}
 #define READ_SHAREDVAR() {sharedvar * p = (sharedvar *) POP(); PUSH((obj)(p->var));}

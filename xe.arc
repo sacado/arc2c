@@ -38,23 +38,6 @@
 (def xe-exprs (le cte)
   (map [xe _ cte] le))
 
-(= macis* (make-macro 'is
-  (fn (e cte)
-    (if (is (len (cdr e)) 2)
-      (make-prim (xe-exprs (cdr e) cte) '%is)
-      (err "is : expects 2 args")))))
-
-(= macisnt* (make-macro 'isnt
-  (fn (e cte)
-    (if (is (len (cdr e)) 2)
-      (make-prim (xe-exprs (cdr e) cte) '%isnt)
-      (err "isnt : expects 2 args")))))
-
-(= mactype* (make-macro 'type
-  (fn (e cte)
-    (if (is (len (cdr e)) 1)
-      (make-prim (xe-exprs (cdr e) cte) '%type)
-      (err "type expects 1 arg")))))
 
 (= mac<* (make-macro '<
   (fn (e cte)
@@ -98,41 +81,12 @@
       (make-prim (xe-exprs (cdr e) cte) '%*)
       (err "* expects 2 args")))))
 
-(= maccons* (make-macro 'cons
-  (fn (e cte)
-    (if (is (len (cdr e)) 2)
-      (make-prim (xe-exprs (cdr e) cte) '%cons)
-      (err "cons expects 2 args")))))
-
-(= maccar* (make-macro 'car
-  (fn (e cte)
-    (if (is (len (cdr e)) 1)
-      (make-prim (xe-exprs (cdr e) cte) '%car)
-      (err "car expects 1 arg")))))
-
-(= maccdr* (make-macro 'cdr
-  (fn (e cte)
-    (if (is (len (cdr e)) 1)
-      (make-prim (xe-exprs (cdr e) cte) '%cdr)
-      (err "cdr expects 1 arg")))))
 
 (= macquote* (make-macro 'quote
   (fn (e cte)
     (if (is (len (cdr e)) 1)
       (make-quote (cdr e))
       (err "quote expects 1 arg")))))
-
-(= macprn* (make-macro 'prn
-  (fn (e cte)
-    (if (is (len (cdr e)) 1)
-      (make-prim (xe-exprs (cdr e) cte) '%prn)
-      (err "prn expects 1 arg")))))
-
-(= macpr* (make-macro 'pr
-  (fn (e cte)
-    (if (is (len (cdr e)) 1)
-      (make-prim (xe-exprs (cdr e) cte) '%pr)
-      (err "pr expects 1 arg")))))
 
 (= macset* (make-macro 'set
   (fn (e cte)
@@ -204,8 +158,8 @@
 
 (def make-initial-cte ()
   (list
-    macis* macisnt* mac<* mac>* mac<=* mac>=* mac+* mac-* mac** macquote* macpr* macprn* macset* mac=* macif*
-    mactype* macfn* macdo* maclet* macor* macand* maccons* maccar* maccdr*))
+    mac<* mac>* mac<=* mac>=* mac+* mac-* mac** macquote* macset* mac=* macif*
+    macfn* macdo* maclet* macor* macand*))
 
 (def xe-lookup (id cte)
   (or

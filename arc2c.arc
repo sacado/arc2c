@@ -7,4 +7,5 @@
 (load "sharedvars.arc")
 (load "rm-global.arc")
 (load "in-global.arc")
+(load "lib-ac.scm.arc")
 

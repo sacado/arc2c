@@ -510,6 +510,7 @@ int main (int argc, char * argv[]) {
             (,to-3-if "3-arg-if TRANSFORMATION")
             ; --------AST form
             (,[xe _ ()] "AST TRANSFORMATION")
+            (,lib-ac-insert "ac.scm LIBRARY INSERTION")
             (,in-global "GLOBAL INLINING")
             (,rm-global "UNUSED GLOBAL REMOVAL")
             (,sharedvars-convert-assert "SHARED VARIABLE CONVERSION")

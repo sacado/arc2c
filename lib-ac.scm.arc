@@ -61,12 +61,20 @@
     (if rest
         ($sub-pr rest))))
 
+(set $sub-prn
+  (fn (rest)
+    (if (cdr rest)
+        (do
+          (%pr (car rest))
+          ($sub-prn (cdr rest)))
+        (%prn (car rest)))))
+
 (set prn
   (fn rest
     (if rest
-        (let rv ($sub-pr rest)
-             (%prn '||)
-             rv))))
+        ($sub-prn rest)
+        (do (%prn '||)
+            nil))))
 
 (set type
   (fn (obj)

@@ -11,7 +11,7 @@
       (err "syntax-error" e)))
 
 (def const-expr? (e)
-  (or (in e t nil) (in (type e) 'int 'num)))
+  (or (in e t nil) (in (type e) 'int 'num 'char 'string)))
 
 (def ident-expr? (e)
   (isa e 'sym))
@@ -38,79 +38,60 @@
 (def xe-exprs (le cte)
   (map [xe _ cte] le))
 
+(= initial-ctes* '())
 
-(= mac<* (make-macro '<
+(mac add-macro (name nbargs)
+  (w/uniq prim-name
+    `(let ,prim-name (coerce (+ "%" (coerce ',name 'string)) 'sym)
+      (push (make-macro ',name
+        (fn (e cte)
+          (if (is (len (cdr e)) ,nbargs)
+            (make-prim (xe-exprs (cdr e) cte) ,prim-name)
+            (err:string ',name " : expects " ,nbargs "arg(s)")))) initial-ctes*))))
+
+(add-macro < 2)
+(add-macro > 2)
+(add-macro <= 2)
+(add-macro >= 2)
+(add-macro + 2)
+(add-macro - 2)
+(add-macro * 2)
+(add-macro len 1)
+(add-macro sref 3)
+
+(push (make-macro 'def
   (fn (e cte)
-    (if (is (len (cdr e)) 2)
-      (make-prim (xe-exprs (cdr e) cte) '%<)
-      (err "< expects 2 args")))))
+    (xe `(set ,(cadr e) (fn ,(car:cddr e) ,@(cdr:cddr e))) cte))) initial-ctes*)
 
-(= mac>* (make-macro '>
-  (fn (e cte)
-    (if (is (len (cdr e)) 2)
-      (make-prim (xe-exprs (cdr e) cte) '%>)
-      (err "> expects 2 args")))))
-
-(= mac<=* (make-macro '<=
-  (fn (e cte)
-    (if (is (len (cdr e)) 2)
-      (make-prim (xe-exprs (cdr e) cte) '%<=)
-      (err "<= expects 2 args")))))
-
-(= mac>=* (make-macro '>=
-  (fn (e cte)
-    (if (is (len (cdr e)) 2)
-      (make-prim (xe-exprs (cdr e) cte) '%>=)
-      (err ">= expects 2 args")))))
-
-(= mac+* (make-macro '+
-  (fn (e cte)
-    (if (is (len (cdr e)) 2)
-      (make-prim (xe-exprs (cdr e) cte) '%+)
-      (err "+ expects 2 args")))))
-
-(= mac-* (make-macro '-   ; could have used %- instead
-  (fn (e cte)
-    (if (is (len (cdr e)) 2)
-      (make-prim (xe-exprs (cdr e) cte) '%-)
-      (err "- expects 2 args")))))
-
-(= mac** (make-macro '*
-  (fn (e cte)
-    (if (is (len (cdr e)) 2)
-      (make-prim (xe-exprs (cdr e) cte) '%*)
-      (err "* expects 2 args")))))
-
-
-(= macquote* (make-macro 'quote
+(push (make-macro 'quote
   (fn (e cte)
     (if (is (len (cdr e)) 1)
       (make-quote '() (cadr e))
-      (err "quote expects 1 arg")))))
+      (err "quote expects 1 arg")))) initial-ctes*)
 
-(= macset* (make-macro 'set
+(push (make-macro 'set
   (fn (e cte)
     (if (is (len (cdr e)) 2)
       (let b (xe-lookup (cadr e) cte)
         (if (avar b)
           (make-set (xe-exprs (cddr e) cte) b)
           (err "can't set a nonvariable" e)))
-      (err "set expects 2 args")))))
+      (err "set expects 2 args")))) initial-ctes*)
 
-(= mac=* (make-macro '=
+(push (make-macro '=
   (fn (e cte)
-    (xe (cons 'set (cdr e)) cte))))
+    (xe (cons 'set (cdr e)) cte))) initial-ctes*)
 
-(= macif* (make-macro 'if
+(push (make-macro 'if
   (fn (e cte)
     (if
       (is (len (cdr e)) 3)
         (make-cnd (xe-exprs (cdr e) cte))
       (is (len (cdr e)) 2)
         (xe `(if ,(cadr e) ,(car:cddr e) nil) cte)
-        (err "if expects 2 or 3 args")))))
+        (err "if expects 2 or 3 args")))) initial-ctes*)
 
-(= macfn* (make-macro 'fn
+(push (make-macro 'fn
   (fn (e cte)
     (let (_ exp-params . body) e
       (if (>= (len (cdr e)) 1)
@@ -121,45 +102,43 @@
            proper-params (if (alist params) (makeproper params) (cons params nil))
            new-cte (extend proper-params cte))
           (make-lam (list:xe (cons 'do body) new-cte) params))
-        (err "fn expects a parameter list"))))))
+        (err "fn expects a parameter list"))))) initial-ctes*)
 
-(= macdo* (make-macro 'do
+(push (make-macro 'do
   (fn (e cte)
     (if
       (is (len (cdr e)) 0)
         (xe nil cte)
       (is (len (cdr e)) 1)
         (xe (cadr e) cte)
-        (make-seq (xe-exprs (cdr e) cte))))))
+        (make-seq (xe-exprs (cdr e) cte))))) initial-ctes*)
 
-(= maclet* (make-macro 'let
+(push (make-macro 'let
   (fn (e cte)
     (if (>= (len (cdr e)) 1)
       (xe (list (+ (list 'fn (list e.1)) (cut e 3)) e.2) cte)
-      (err "let expects a binding")))))
+      (err "let expects a binding")))) initial-ctes*)
 
-(= macor* (make-macro 'or
+(push (make-macro 'or
   (fn (e cte)
     (if
       (is (len (cdr e)) 0)
         (xe nil cte)
       (is (len (cdr e)) 1)
         (xe (cadr e) cte)
-        (xe `((lambda (t1 t2) (if t1 t1 (t2))) ,(cadr e) (lambda () (or ,@(cddr e)))) cte)))))
+        (xe `((lambda (t1 t2) (if t1 t1 (t2))) ,(cadr e) (lambda () (or ,@(cddr e)))) cte)))) initial-ctes*)
 
-(= macand* (make-macro 'and
+(push (make-macro 'and
   (fn (e cte)
     (if
       (is (len (cdr e)) 0)
         (xe t cte)
       (is (len (cdr e)) 1)
         (xe (cadr e) cte)
-        (xe `((lambda (t1 t2) (if t1 (t2) t1)) ,(cadr e) (lambda () (and ,@(cddr e)))) cte)))))
+        (xe `((lambda (t1 t2) (if t1 (t2) t1)) ,(cadr e) (lambda () (and ,@(cddr e)))) cte)))) initial-ctes*)
 
 (def make-initial-cte ()
-  (list
-    mac<* mac>* mac<=* mac>=* mac+* mac-* mac** macquote* macset* mac=* macif*
-    macfn* macdo* maclet* macor* macand*))
+  initial-ctes*)
 
 (def xe-lookup (id cte)
   (or

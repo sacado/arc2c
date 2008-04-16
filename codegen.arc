@@ -42,6 +42,8 @@
               (if
                 (no val) (list " PUSH(NILOBJ);")
                 (is val t) (list " PUSH(TOBJ);")
+                (isa val 'char) (list " PUSH(CHAR2OBJ(" coerce.val!int "));")
+                (isa val 'string) (list " PUSH((obj)utf82str(\"" val "\"));")
                 (list " PUSH(FIX2OBJ(" val "));")))
           (aquote ast)
             (let val ast!val
@@ -63,10 +65,14 @@
                   (list (cg-args args stack-env) " READ_SHAREDVAR();")
                 (is ast!op '%sharedvar-write)
                   (list (cg-args args stack-env) " WRITE_SHAREDVAR();")
+                (is ast!op '%sref) (list (cg-args args stack-env) " SREF();")
                 (is ast!op '%cons) (list (cg-args args stack-env) " CONS();")
                 (is ast!op '%car) (list (cg-args args stack-env) " CAR();") 
                 (is ast!op '%cdr) (list (cg-args args stack-env) " CDR();") 
+                (is ast!op '%len) (list (cg-args args stack-env) " LEN();") 
                 (is ast!op '%type) (list (cg-args args stack-env) " TYPE();")
+                (is ast!op '%annotate) (list (cg-args args stack-env) " ANNOTATE();")
+                (is ast!op '%rep) (list (cg-args args stack-env) " REP();")
                 (is ast!op '%is) (list (cg-args args stack-env) " EQ();")
                 (is ast!op '%isnt) (list (cg-args args stack-env) " NEQ();")
                 (is ast!op '%<) (list (cg-args args stack-env) " LT();")
@@ -153,170 +159,31 @@
 
   (let code (compile-all-lambdas)
     (list
-      (list "#define NB_GLOBALS " (len global-vars) "\n"  "#define MAX_STACK " 10000 "\n")
-      code-prefix*
+      (list "#define NB_GLOBALS " (len global-vars) "\n"  "#define MAX_STACK " 2000 "\n" "#define NB_QUOTE_CONSTANTS " constant-count "\n")
+      code-header*
       (if constant-todo
         ; constants were defined; initialize
-        (list "obj QUOTE_CONSTANTS[" constant-count "];\n"
+        (list "obj QUOTE_CONSTANTS[NB_QUOTE_CONSTANTS];\n"
               "void init_constants(void){\n"
               (compile-constants:rev constant-todo)
               "}\n")
         ; no constants; dummy initialize
         "\n#define init_constants()\n")
+      code-prefix*
       code-execute*
       code
       code-suffix*))))
 
-(= code-prefix* "
 
-#define GC_DEBUG
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <gc.h>
-
-#define MAX_SYMS 1000000
-#define T_PAIR 0
-#define T_SYM  1
-
-typedef long obj;
-
-typedef struct {
-  long type; /* T_PAIR */
-  obj car;
-  obj cdr;
-} pair;
-
-typedef struct {
-  long type; /* T_SYM */
-  char * value;
-} symbol;
-
-typedef struct {
-  /*no type - should not be directly accessible by Arc*/
-  obj var;
-} sharedvar;
-
-obj global[NB_GLOBALS];
-obj stack[MAX_STACK];
-obj * closure;
-obj * sp;
-symbol * syms[MAX_SYMS]; /* To be replaced by a hash table */
-int nsyms;
-
-#define AFIX(o) ((o) & 1)     /* the last bit is 0 : it's a fixnum */
-#define APTR(o) (!((o) & 1))  /* It's not a fixnum : it's a ref to something else */
-#define ASYM(o) (((obj*)(o))[0] == T_SYM)
-#define APAIR(o) (((obj*)(o))[0] == T_PAIR)
-
-#define FIX2OBJ(n) (((n) << 1) + 1)
-#define OBJ2FIX(o) ((o) >> 1)
-
-#define GLOBAL(i) global[i]
-#define LOCAL(i) stack[i]
-#define CLOSURE_REF(self,i) ((obj *)(self))[i]
-
-#define TOS() sp[-1]
-#define PUSH(x) *sp++ = x
-#define POP() *--sp
-
-#define EQ() { obj y = POP(); TOS() = TOS() == y ? TOBJ : NILOBJ; }
-#define NEQ() { obj y = POP(); TOS() = TOS() != y ? TOBJ : NILOBJ; }
-
-#define TYPE() { obj * p; obj y = TOS();\\
-  if (AFIX(y))\\
-    TOS() = SYM2OBJ(\"int\");\\
-  else{\\
-    p = (obj *) y;\\
-    switch ((char) *p){\\
-      case T_PAIR: TOS() = SYM2OBJ(\"cons\"); break;\\
-      case T_SYM: TOS() = SYM2OBJ(\"sym\"); break;\\
-    }\\
-  }\\
-}
-
-#define LT() { obj y = POP(); TOS() = TOS() < y ? TOBJ : NILOBJ; }
-#define GT() { obj y = POP(); TOS() = TOS() > y ? TOBJ : NILOBJ; }
-#define LE() { obj y = POP(); TOS() = TOS() <= y ? TOBJ : NILOBJ; }
-#define GE() { obj y = POP(); TOS() = TOS() >= y ? TOBJ : NILOBJ; }
-#define ADD() { long y = OBJ2FIX(POP()); TOS() = FIX2OBJ(OBJ2FIX(TOS()) + y); }
-#define SUB() { long y = OBJ2FIX(POP()); TOS() = FIX2OBJ(OBJ2FIX(TOS()) - y); }
-#define MUL() { long y = OBJ2FIX(POP()); TOS() = FIX2OBJ(OBJ2FIX(TOS()) * y); }
-
-obj cons_fun(obj a, obj d){
-  pair * p = GC_MALLOC(sizeof(pair));
-  p->type = T_PAIR;
-  p->car = a;
-  p->cdr = d;
-  return (obj) p;
-}
-
-#define CONS() { pair * p = GC_MALLOC (sizeof(pair)); p->type = T_PAIR ; p->cdr = POP(); p->car = POP(); PUSH((obj)p); }
-#define CAR() {if(TOS()!=NILOBJ){ pair * p = (pair *) POP(); PUSH((obj)(p->car)); } else {}}
-#define CDR() {if(TOS()!=NILOBJ){ pair * p = (pair *) POP(); PUSH((obj)(p->cdr)); } else {}}
-
-#define MAKE_SHAREDVAR() {sharedvar * p = GC_MALLOC(sizeof(sharedvar)); p->var = POP(); PUSH((obj)p);}
-#define READ_SHAREDVAR() {sharedvar * p = (sharedvar *) POP(); PUSH((obj)(p->var));}
-#define WRITE_SHAREDVAR() {obj v = POP(); sharedvar * p = (sharedvar *) POP(); p->var = v; PUSH(v);}
-
-#define PRN() { PR(); printf (\"\\n\");}
-
-void PR(){
-  pair * p;
-  symbol * s;
-  obj y = TOS();
-
-  if (AFIX(y))
-    printf (\"%ld\", OBJ2FIX(y));
-  else if (ASYM(y)){
-    s = (symbol *) y;
-    printf (\"%s\", s->value);
-  }
-  else if (APAIR(y)){
-    p = (pair *) y;
-    printf (\"( \");
-    PUSH(p->car); PR(); POP();
-    printf (\" . \");
-    PUSH(p->cdr); PR(); POP();
-    printf (\" )\");
-  }
-}
+(def readtxtfile (name)
+  (w/infile f name
+    (let res ""
+      (whilet line (readline f) (++ res (string line "\n")))
+      res)))
 
 
-#define HALT() break
-
-//place arguments exceeding nbreq into a list at the top of
-//the stack
-#define VARIADIC2LIST(nbreq) for(PUSH(NILOBJ); num_args > nbreq; num_args--) CONS()
-
-#define BEGIN_CLOSURE(label,nbfree) closure = GC_MALLOC(sizeof(obj) * nbfree + 1);
-#define INICLO(i) closure[i] = POP();
-#define END_CLOSURE(label,nbfree) closure[0] = label; PUSH((obj)closure);
-
-#define BEGIN_JUMP(nbargs) {sp = stack; num_args = nbargs;}
-#define END_JUMP(nbargs) pc = ((obj *)LOCAL(0))[0]; goto jump;
-
-obj SYM2OBJ (char * s){ /* Find a symbol, or save it if it's the first time */
-  int i;
-
-  for (i = 0 ; i < nsyms ; i++)
-    if (strcmp (s, syms[i]->value) == 0) /* found it */
-      return (obj) syms[i];
-
-  if (nsyms == MAX_SYMS){ /* Bad luck, really... */
-    fprintf (stderr, \"Sorry, we just ran out of symbols. Please come back later...\\n\");
-    exit (1);
-  }
-
-  syms[nsyms]        = malloc (sizeof(symbol)); /* Symbols never go away, then can be malloc-ed */
-  syms[nsyms]->type  = T_SYM;
-  syms[nsyms]->value = (char *) malloc (strlen (s) + 1);
-  strcpy (syms[nsyms]->value, s);
-
-  return (obj) syms[nsyms++];
-}
-")
+(= code-header* (readtxtfile "a2c.h")  ; typedefs, function headers & macros
+   code-prefix* (readtxtfile "a2c.c")) ; predefined functions
 
 (= code-execute* "
 
@@ -333,13 +200,6 @@ obj execute (int pc)
 
 (= code-suffix* "  }
   return POP();
-}
-
-int main (int argc, char * argv[]) {
-  GC_INIT();
-  init_constants();
-  execute(0);
-  return 0;
 }
 ")
 

@@ -80,6 +80,14 @@
   (fn (obj)
     (%type obj)))
 
+(set rep
+  (fn (obj)
+    (%rep obj)))
+
+(set annotate
+  (fn (the-tag obj)
+    (%annotate the-tag obj)))
+
 ; arguably the "wrong" place to put this in, since
 ; this is part of arc.arc, but useful anyway
 (set list

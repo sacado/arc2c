@@ -160,11 +160,11 @@
   (let code (compile-all-lambdas)
     (list
       (list "#define NB_GLOBALS " (len global-vars) "\n"  "#define MAX_STACK " 2000 "\n" "#define NB_QUOTE_CONSTANTS " constant-count "\n")
+      "obj QUOTE_CONSTANTS[NB_QUOTE_CONSTANTS];\n"
       code-header*
       (if constant-todo
         ; constants were defined; initialize
-        (list "obj QUOTE_CONSTANTS[NB_QUOTE_CONSTANTS];\n"
-              "void init_constants(void){\n"
+        (list "void init_constants(void){\n"
               (compile-constants:rev constant-todo)
               "}\n")
         ; no constants; dummy initialize

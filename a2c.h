@@ -223,3 +223,5 @@ obj gc_malloc (size_t size);
 
 obj execute (int pc);
 
+obj QUOTE_CONSTANTS[NB_QUOTE_CONSTANTS];
+

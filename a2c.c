@@ -379,6 +379,7 @@ void perform_gc(){
   int i;
   obj * scur;
   string * s;
+  table * t;
 
   for (scur = stack ; scur < sp ; scur++)
     explore_heap (*scur);

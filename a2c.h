@@ -16,6 +16,7 @@
 #define T_TAG  2
 #define T_STR  3
 #define T_FN   4
+#define T_TBL  5
 
 typedef long obj;
 
@@ -43,6 +44,14 @@ typedef struct {
 } string;
 
 typedef struct {
+  long type; /* T_TBL */
+  int size;
+  int max_size;
+  obj * keys;
+  obj * values;
+} table;
+
+typedef struct {
   /*no type - should not be directly accessible by Arc*/
   obj var;
 } sharedvar;
@@ -62,6 +71,7 @@ typedef struct {
 #define ATAG(o) (((obj*)(o))[0] == T_TAG)
 #define ASTR(o) (((obj*)(o))[0] == T_STR)
 #define AFN(o) (((obj*)(o))[0] == T_FN)
+#define ATBL(o) (((obj*)(o))[0] == T_TBL)
 
 #define FIX2OBJ(n) (((n) << 2) + 3)
 #define OBJ2FIX(o) ((o) >> 2)
@@ -104,6 +114,7 @@ char eq_str (string * a, string * b);
       case T_SYM: TOS() = SYM2OBJ("sym"); break;\
       case T_STR: TOS() = SYM2OBJ("string"); break;\
       case T_FN: TOS() = SYM2OBJ("fn"); break;\
+      case T_TBL: TOS() = SYM2OBJ("table"); break;\
     }\
   }\
 }
@@ -111,7 +122,18 @@ char eq_str (string * a, string * b);
 char * str2utf8 (string * s);
 string * utf82str (char * s);
 string * string_concat (string * s1, string * s2);
-obj eq_string (string * a, string * b);
+
+void set_tbl (table * t, obj index, obj value);
+obj tbl_lookup (table * t, obj index);
+
+#define TBL() { table * t = (table *) gc_malloc(sizeof(table));\
+t->type = T_TBL;\
+t->size = 0;\
+t->max_size = 10;\
+t->keys = (obj *) malloc(sizeof(obj) * 10);\
+t->values = (obj *) malloc(sizeof(obj) * 10);\
+PUSH((obj)t);\
+}
 
 #define ANNOTATE() { tagged * t = (tagged *) gc_malloc(sizeof(tagged)); t->type = T_TAG; t->content = POP(); t->ctype = POP(); PUSH((obj)t); }
 #define REP() { obj y = TOS(); if (APTR(y) && ATAG(y)) TOS() = ((tagged*)y)->content; }
@@ -145,14 +167,18 @@ obj eq_string (string * a, string * b);
 obj cons_fun(obj a, obj d);
 
 #define CONS() { pair * p = (pair *) gc_malloc(sizeof(pair)); p->type = T_PAIR ; p->cdr = POP(); p->car = POP(); PUSH((obj)p); }
-#define CAR() { if (TOS() != NILOBJ) {pair * p = (pair *) POP(); PUSH((obj)(p->car)); }}
-#define CDR() { if (TOS() != NILOBJ) {pair * p = (pair *) POP(); PUSH((obj)(p->cdr)); }}
+#define CAR() { pair * p = (pair *) POP(); PUSH((obj)(p->car)); }
+#define CDR() { pair * p = (pair *) POP(); PUSH((obj)(p->cdr)); }
 
-#define SREF() { obj idx, val, var; string * s;\
+#define SREF() { obj idx, val, var; string * s; table * t;\
   idx = POP(); val = POP(); var = TOS();\
   if (ASTR(var)){\
     s = (string *) var;\
     s->cpts[OBJ2FIX(idx)] = OBJ2CHAR(val);\
+  }\
+  else if (ATBL(var)){\
+    t = (table *) var;\
+    set_tbl (t, idx, val);\
   }\
 }
 
@@ -174,7 +200,21 @@ void PR();
 #define END_CLOSURE(label,nbfree) closure[0] = T_FN; closure[1] = nbfree; closure[2] = label; PUSH((obj)closure);
 
 #define BEGIN_JUMP(nbargs) {sp = stack; num_args = nbargs;}
-#define END_JUMP(nbargs) closure = (obj *) LOCAL(0); pc = closure[2]; goto jump;
+#define END_JUMP(nbargs) { obj o = LOCAL(0);\
+if (!AFN(o)){\
+  BEGIN_JUMP(2); PUSH(LOCAL(1));\
+  if (ATBL(o)){\
+    PUSH(tbl_lookup((table *) o, LOCAL(2)));\
+  } else if (ASTR(o)){\
+    PUSH(CHAR2OBJ(((string *) o)->cpts[OBJ2FIX(LOCAL(2))]));\
+  } else if (APAIR(o)){\
+    long idx = OBJ2FIX(LOCAL(2));\
+    while (idx > 0){ idx--; o = ((pair *) o)->cdr; }\
+    PUSH(((pair *) o)->car);\
+  }\
+}\
+closure = (obj *) LOCAL(0); pc = closure[2]; goto jump;}
+
 
 void gc_init();
 void explore_heap(obj from);

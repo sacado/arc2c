@@ -84,6 +84,7 @@
                 (is ast!op '%*) (list (cg-args args stack-env) " MUL();")
                 (is ast!op '%pr) (list (cg-args args stack-env) " PR();") 
                 (is ast!op '%prn) (list (cg-args args stack-env) " PRN();")
+                (is ast!op '%table) (list (cg-args args stack-env) " TBL();")
                 (is ast!op '%halt) (list (cg-args args stack-env) " HALT();")
                 (is ast!op '%closure)
                   (withs

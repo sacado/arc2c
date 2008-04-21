@@ -42,6 +42,9 @@
 (set cdr
   (fn (l) (%cdr l)))
 
+(set table
+  (fn () (%table)))
+
 (set is
   (fn (a b) (%is a b)))
 

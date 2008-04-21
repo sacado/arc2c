@@ -49,6 +49,40 @@ char eq_str (string * a, string * b){
 }
 
 
+char * cpt2utf8 (long cpt){
+  char * res = (char *) malloc (4 + 1);
+  int len    = 0;
+
+  if (cpt < 128)
+    res[len++] = (char) cpt;
+
+  else if (cpt < 2048){ /* 2 bytes needed*/
+    res[len++] = (cpt / 64) | 192;
+    res[len++] = (cpt % 64) | 128;
+  }
+
+  else if (cpt < 65536){ /* 3 bytes needed*/
+    res[len++] = (cpt / 4096) | 224;
+    cpt        = cpt % 4096;
+    res[len++] = (cpt / 64) | 128;
+    res[len++] = (cpt % 64) | 128;
+  }
+
+  else{ /* 4 bytes needed*/
+    res[len++] = (cpt / 262144) | 240;
+    cpt        = cpt % 262144;
+    res[len++] = (cpt / 4096 ) | 128;
+    cpt        = cpt % 4096;
+    res[len++] = (cpt / 64) | 128;
+    res[len++] = (cpt % 64) | 128;
+  }
+
+  res[len] = '\0';
+
+  return res;
+}
+
+
 char * str2utf8 (string * s){
   /* Just get as much memory as we *could* need */
   char * res = (char *) malloc ((s->size * 4) + 1);
@@ -144,12 +178,88 @@ string * string_concat (string * s1, string * s2){
 }
 
 
+void set_tbl (table * t, obj index, obj value){
+  int i;
+  obj cur_key;
+
+  for (i = 0 ; i < t->size ; i++){
+    cur_key = t->keys[i];
+
+    if (!APTR(cur_key) || !ASTR(cur_key)){
+      if (cur_key == index)
+        break;
+    }
+    else if (ASTR(cur_key))
+      if (eq_str ((string *) cur_key, (string *) index))
+        break;
+  }
+
+  if (i == t->max_size){
+    t->max_size *= 2;
+    t->keys     = realloc (t->keys, sizeof (obj) * t->max_size);
+    t->values   = realloc (t->values, sizeof (obj) * t->max_size);
+  }
+
+  if (i == t->size)
+    t->size++;
+
+  t->keys[i] = index;
+  t->values[i] = value;
+}
+
+
+obj tbl_lookup (table * t, obj index){
+  int i;
+  obj cur_key;
+
+  for (i = 0 ; i < t->size ; i++){
+    cur_key = t->keys[i];
+
+    if (!APTR(cur_key) || !ASTR(cur_key)){
+      if (cur_key == index)
+        return t->values[i];
+    }
+    else if (ASTR(cur_key))
+      if (eq_str ((string *) cur_key, (string *) index))
+        return t->values[i];
+  }
+
+  return SYM2OBJ("nil");
+}
+
+
 obj cons_fun(obj a, obj d){
   pair * p = (pair *) gc_malloc(sizeof(pair));
   p->type = T_PAIR;
   p->car = a;
   p->cdr = d;
   return (obj) p;
+}
+
+
+void pr_tbl (table * t){
+  int i;
+  obj dummy;
+
+  printf ("#hash(");
+
+  for (i = 0 ; i < t->size ; i++){
+    printf("(");
+    PUSH(t->keys[i]);
+    PR();
+    dummy = POP();
+
+    printf(" . ");
+    PUSH(t->values[i]);
+    PR();
+    dummy = POP();
+    printf(")");
+
+    if (i < t->size - 1)
+      printf (" ");
+  }
+
+  printf (")");
 }
 
 
@@ -160,14 +270,19 @@ void PR(){
 
   if (AFIX(y))
     printf ("%ld", OBJ2FIX(y));
-  else if (ACHAR(y))
-    printf ("%c\n", (char) OBJ2CHAR(y));
+  else if (ACHAR(y)){
+    char * utf8 = cpt2utf8(OBJ2CHAR(y));
+    printf ("%s", utf8);
+    free(utf8);
+  }
   else if (ASYM(y))
     printf ("%s", ((symbol *)y)->value);
   else if (ASTR(y))
     printf ("%s", str2utf8 ((string *) y));
   else if (AFN(y))
     printf ("#<procedure>");
+  else if (ATBL(y))
+    pr_tbl((table *) y);
   else if (ATAG(y)){
     t = (tagged *) y;
     printf ("#3(tagged ");
@@ -213,6 +328,7 @@ void gc_init(){
 void explore_heap(obj from){
   long o;
   long * fn;
+  table * t;
   int i;
   obj * pfrom;
 
@@ -244,6 +360,15 @@ void explore_heap(obj from){
           for (i = 0 ; i < fn[1]; i++)
             explore_heap((obj)(fn[i+3]));
           break;
+        case T_TBL:
+          t = (table *) pfrom;
+
+          for (i = 0 ; i < t->size ; i++){
+            explore_heap(t->keys[i]);
+            explore_heap(t->values[i]);
+          }
+
+          break;
       }
     }
   }
@@ -267,7 +392,12 @@ void perform_gc(){
   for (i = 0 ; i < HEAP_SIZE ; i++){
     switch (freel.mark[i]){
       case UNMARKED:
-        if (ASTR(freel.heap[i])){ /* must free content first */
+        if (ATBL(freel.heap[i])){
+          t = (table *) (freel.heap[i]);
+          free(t->keys);
+          free(t->values);
+        }
+        else if (ASTR(freel.heap[i])){
           s = (string *) (freel.heap[i]);
           free (s->cpts);
         }

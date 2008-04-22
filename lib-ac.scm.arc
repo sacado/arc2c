@@ -18,6 +18,8 @@
 ;   5. No 'afn or 'rfn.  See #3.
 ;   6. Only the single-local-variable 'let and the no-local-variables 'do
 ;      are supported.
+;      (support for these, particularly 'let, may eventually be dropped:
+;      avoid if possible!)
 ;   7. You better make sure the parens match
 ;
 ; For all the above limitations, you do have a few very powerful abilities
@@ -25,6 +27,8 @@
 ;   1. You can access any primitives by prepending them with %.  For
 ;      example you can access the %car primitive.  If you need to define
 ;      a primitive, add it to codegen.arc and use it here.
+;      (primitives are accessible only in function position: you can't
+;      pass around primitives as if they were objects)
 ;   2. You can create a lib-ac-only global by prepending it with $.  These
 ;      globals are inaccessible to plain Arc code, and are accessible only
 ;      to lib-ac.
@@ -90,6 +94,14 @@
 (set annotate
   (fn (the-tag obj)
     (%annotate the-tag obj)))
+
+(set len
+  (fn (o)
+    (%len o)))
+
+(set sref
+  (fn (c v i)
+    (%sref c v i)))
 
 ; arguably the "wrong" place to put this in, since
 ; this is part of arc.arc, but useful anyway

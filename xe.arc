@@ -56,53 +56,6 @@
 (add-macro + 2)
 (add-macro - 2)
 (add-macro * 2)
-(add-macro len 1)
-(add-macro sref 3)
-
-(push (make-macro 'def
-  (fn (e cte)
-    (xe `(set ,(cadr e) (fn ,(car:cddr e) ,@(cdr:cddr e))) cte))) initial-ctes*)
-
-(push (make-macro 'quote
-  (fn (e cte)
-    (if (is (len (cdr e)) 1)
-      (make-quote '() (cadr e))
-      (err "quote expects 1 arg")))) initial-ctes*)
-
-(push (make-macro 'set
-  (fn (e cte)
-    (if (is (len (cdr e)) 2)
-      (let b (xe-lookup (cadr e) cte)
-        (if (avar b)
-          (make-set (xe-exprs (cddr e) cte) b)
-          (err "can't set a nonvariable" e)))
-      (err "set expects 2 args")))) initial-ctes*)
-
-(push (make-macro '=
-  (fn (e cte)
-    (xe (cons 'set (cdr e)) cte))) initial-ctes*)
-
-(push (make-macro 'if
-  (fn (e cte)
-    (if
-      (is (len (cdr e)) 3)
-        (make-cnd (xe-exprs (cdr e) cte))
-      (is (len (cdr e)) 2)
-        (xe `(if ,(cadr e) ,(car:cddr e) nil) cte)
-        (err "if expects 2 or 3 args")))) initial-ctes*)
-
-(push (make-macro 'fn
-  (fn (e cte)
-    (let (_ exp-params . body) e
-      (if (>= (len (cdr e)) 1)
-        (withs
-          ; support proper and improper lists
-          ; as argument list: (arg arg) or (arg . arg)
-          (params (map-improper new-var exp-params)
-           proper-params (if (alist params) (makeproper params) (cons params nil))
-           new-cte (extend proper-params cte))
-          (make-lam (list:xe (cons 'do body) new-cte) params))
-        (err "fn expects a parameter list"))))) initial-ctes*)
 
 (push (make-macro 'do
   (fn (e cte)
@@ -136,6 +89,55 @@
       (is (len (cdr e)) 1)
         (xe (cadr e) cte)
         (xe `((lambda (t1 t2) (if t1 (t2) t1)) ,(cadr e) (lambda () (and ,@(cddr e)))) cte)))) initial-ctes*)
+
+(push (make-macro '=
+  (fn (e cte)
+    (xe (cons 'set (cdr e)) cte))) initial-ctes*)
+
+(push (make-macro 'def
+  (fn (e cte)
+    (xe `(set ,(cadr e) (fn ,(car:cddr e) ,@(cdr:cddr e))) cte))) initial-ctes*)
+
+;-----------------------------------------------------------------------------
+; all the macros above this line should eventually be ported
+; into lib-ac.scm.arc or in our version of arc.arc
+
+(push (make-macro 'quote
+  (fn (e cte)
+    (if (is (len (cdr e)) 1)
+      (make-quote '() (cadr e))
+      (err "quote expects 1 arg")))) initial-ctes*)
+
+(push (make-macro 'set
+  (fn (e cte)
+    (if (is (len (cdr e)) 2)
+      (let b (xe-lookup (cadr e) cte)
+        (if (avar b)
+          (make-set (xe-exprs (cddr e) cte) b)
+          (err "can't set a nonvariable" e)))
+      (err "set expects 2 args")))) initial-ctes*)
+
+(push (make-macro 'if
+  (fn (e cte)
+    (if
+      (is (len (cdr e)) 3)
+        (make-cnd (xe-exprs (cdr e) cte))
+      (is (len (cdr e)) 2)
+        (xe `(if ,(cadr e) ,(car:cddr e) nil) cte)
+        (err "if expects 2 or 3 args")))) initial-ctes*)
+
+(push (make-macro 'fn
+  (fn (e cte)
+    (let (_ exp-params . body) e
+      (if (>= (len (cdr e)) 1)
+        (withs
+          ; support proper and improper lists
+          ; as argument list: (arg arg) or (arg . arg)
+          (params (map-improper new-var exp-params)
+           proper-params (if (alist params) (makeproper params) (cons params nil))
+           new-cte (extend proper-params cte))
+          (make-lam (list:xe (cons 'do body) new-cte) params))
+        (err "fn expects a parameter list"))))) initial-ctes*)
 
 (def make-initial-cte ()
   initial-ctes*)

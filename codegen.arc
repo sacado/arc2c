@@ -377,15 +377,21 @@ obj execute (int pc)
             (,cps-convert "CPS-CONVERSION")
             (,closure-convert "CLOSURE-CONVERSION")))
     (= xe-global-cte* (make-initial-cte))
+    (when debugmode
+      (w/outfile stream "arc2c.log"
+        nil))
     (= d
       (reduce (fn (old-d (f desc))
                 (let new-d nil
-                  (when debugmode
-                    (pr "------------------------------ "))
                   (prn desc)
                   (= new-d (f old-d))
                   (when debugmode
-                    (ppr-sexp (source new-d)))
+                    (w/appendfile stream "arc2c.log"
+                      (w/stdout stream
+                        (prn "--------------------------")
+                        (prn desc)
+                        (prn "--------------------------")
+                        (ppr-sexp (source new-d)))))
                   new-d))
               chain d))
     (w/outfile f (+ (strip-ext filename) ".c")

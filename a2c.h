@@ -167,8 +167,8 @@ PUSH((obj)t);\
 obj cons_fun(obj a, obj d);
 
 #define CONS() { pair * p = (pair *) gc_malloc(sizeof(pair)); p->type = T_PAIR ; p->cdr = POP(); p->car = POP(); PUSH((obj)p); }
-#define CAR() { pair * p = (pair *) POP(); PUSH((obj)(p->car)); }
-#define CDR() { pair * p = (pair *) POP(); PUSH((obj)(p->cdr)); }
+#define CAR() { if (TOS() != NILOBJ) {pair * p = (pair *) POP(); PUSH((obj)(p->car)); }}
+#define CDR() { if (TOS() != NILOBJ) {pair * p = (pair *) POP(); PUSH((obj)(p->cdr)); }}
 
 #define SREF() { obj idx, val, var; string * s; table * t;\
   idx = POP(); val = POP(); var = TOS();\

@@ -36,6 +36,7 @@
     ; from within sequences
     (= remove-consts
        (fn (ast)
+         (prn "remove-consts " (source ast))
          (if
            (aseq ast)
              (do
@@ -51,10 +52,10 @@
                        ; then we can eliminate it
                          (if ((orf alit aref aquote alam) ast)
                              (self rest)
-                             (cons ast (self rest)))
+                             (cons (remove-consts ast) (self rest)))
                        ; tails are always useful
                        ast
-                         (cons ast nil)))
+                         (cons (remove-consts ast) nil)))
                    ast!subx))
                ast)
            (aquote ast)

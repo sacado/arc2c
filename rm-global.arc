@@ -36,7 +36,6 @@
     ; from within sequences
     (= remove-consts
        (fn (ast)
-         (prn "remove-consts " (source ast))
          (if
            (aseq ast)
              (do

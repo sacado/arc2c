@@ -20,21 +20,24 @@
 
 (def make-eval ()
   " Creates an 'eval-like function for macros. "
-  (with (global-env (table)
-         deep-copy nil
-         symeval
-           (fn (e env)
-             (unless (isa e 'sym)
-               (err:tostring:pr "make-eval/symeval: not a symbol - " e))
-             (if env
-               (aif (env e)
-                    it
-                    (symeval e (env "parent")))
-               ; protect the global: make a copy of
-               ; it, don't let the target mutate
-               ; it directly.
-               (= global-env.e (deep-copy:eval e)))
-         ))
+  (withs (global-env (table)
+          deep-copy nil
+          symeval
+            (fn (e (o env global-env))
+              (unless (isa e 'sym)
+                (err:tostring:pr "make-eval/symeval: not a symbol - " e))
+              (if env
+                (aif (env e)
+                     it
+                     (symeval e (env "parent")))
+                ; protect the global: make a copy of
+                ; it, don't let the target mutate
+                ; it directly.
+                (= global-env.e (deep-copy:eval e))))
+          macro-expand
+            (fn (macname . args)
+              (let macfn (symeval macname)
+                (apply (rep macfn) args))))
     (= deep-copy
        (fn (o)
          (if
@@ -60,17 +63,15 @@
                rv)
            ; anything else
              o)))
-    ; overload 'type to convert 'interpreted-fn to 'fn
+    ; overload 'type to convert 'make-eval-interpreted-fn to 'fn
     (= global-env!type
        (fn (o)
          (let typ (type o)
-           (if (is typ 'interpreted-fn)
+           (if (is typ 'make-eval-interpreted-fn)
                'fn
                typ))))
     ; the eval function
     (afn (e (o env global-env))
-      ; TODO: remove-ssyntaxes function
-      ; - must special-case ((compose a b) c)
       (zap remove-ssyntaxes e)
       (if
         (isa e 'sym)
@@ -78,7 +79,6 @@
         (isa e 'cons)
           (if (and (isa (car e) 'sym) (isa (symeval:car e) 'mac))
               ; macro expand
-              ; TODO: macro-expand function
               (self:macro-expand e)
               ; check the expression
               (case (car e)
@@ -86,7 +86,7 @@
                 ; quote quasiquote if set lset
                 ; (arc does *not* special-case anything else)
                 fn
-                  (annotate 'interpreted-fn
+                  (annotate 'make-eval-interpreted-fn
                             (table 'params (cadr e)
                                    'code (cddr e)
                                    'closure env
@@ -96,21 +96,24 @@
           ; everything else evals to itself
           e))))
 
-; to allow "real" functions to call 'interpreted-fn
-(defcall interpreted-fn  (f . args)
+; to allow "real" functions to call 'make-eval-interpreted-fn
+(defcall make-eval-interpreted-fn  (f . args)
   (with (f (rep f)
          new-env (table)
-         rv nil)
+         rv nil
+         destructure
+           (afn () ()))
+    ; assign arguments to parameter variables
     ((afn (params args)
        (if
-         (no args)
-           (if (acons params) (err "Too few arguments"))
          (no params)
-           (if args (err "Too many arguments"))
+           (if args (err "make-eval fn object: Too many arguments"))
          (acons params)
            ; TODO: destructure function
-           (do (destructure new-env (car params) (car args))
-               (self (cdr params) (cdr args)))
+           (if (acons:car params)
+               (destructure new-env params args)
+               (do (= (new-env:car params) (car args))
+                   (self (cdr params) (cdr args))))
          ; a "rest" argument
            (= new-env.params args)))
      f!params args)

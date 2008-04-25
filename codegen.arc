@@ -311,24 +311,27 @@ obj execute (int pc)
       ; else
         code)))
 
-; When self-compiling, probably need to define
-; ssyntax and ssexpand lib functions
 (def symbol-syntax (l)
   (code-walk code l
-    (if
-      (and (acons code) (ssyntax:car code))
-        (let (fun . args) code
-          (zap ssexpand fun)
-          (if (caris fun 'compose)
-              ((afn ((fun . rest))
-                 (if rest
-                     `(,fun ,(self rest))
-                     `(,fun ,@args)))
-               (cdr fun))
-              `(,fun ,@args)))
-      (ssyntax code)
-        (ssexpand code)
-      code)))
+    (remove-ssnytaxes code)))
+
+; When self-compiling, probably need to define
+; ssyntax and ssexpand lib functions
+(def remove-ssyntaxes (code)
+  (if
+    (and (acons code) (ssyntax:car code))
+      (let (fun . args) code
+        (zap ssexpand fun)
+        (if (caris fun 'compose)
+            ((afn ((fun . rest))
+               (if rest
+                   `(,fun ,(self rest))
+                   `(,fun ,@args)))
+             (cdr fun))
+            `(,fun ,@args)))
+    (ssyntax code)
+      (ssexpand code)
+    code))
 
 ; handles (toplevel) 'load and 'require
 ; inefficiency note: allocs a lot of cons cells

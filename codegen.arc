@@ -313,7 +313,7 @@ obj execute (int pc)
 
 (def symbol-syntax (l)
   (code-walk code l
-    (remove-ssnytaxes code)))
+    (remove-ssyntaxes code)))
 
 ; When self-compiling, probably need to define
 ; ssyntax and ssexpand lib functions

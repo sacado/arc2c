@@ -85,6 +85,7 @@ char * cpt2utf8 (long cpt){
 
 char * str2utf8 (string * s){
   /* Just get as much memory as we *could* need */
+  /*memory leak? when does this get freed?*/
   char * res = (char *) malloc ((s->size * 4) + 1);
   int i;
   int len = 0;
@@ -329,6 +330,7 @@ void explore_heap(obj from){
   long o;
   long * fn;
   table * t;
+  sharedvar * s;
   int i;
   obj * pfrom;
 
@@ -336,6 +338,9 @@ void explore_heap(obj from){
     pfrom = (void *) from;
     i     = 0;
 
+    /*Why is this checking if it's FREE?
+      shouldn't this process occur only
+      of there are no FREE heapspaces?*/
     while (i < HEAP_SIZE && (freel.heap[i] != from || freel.mark[i] == FREE))
       i++;
 
@@ -367,7 +372,11 @@ void explore_heap(obj from){
             explore_heap(t->keys[i]);
             explore_heap(t->values[i]);
           }
+          break;
+        case T_SHAREDVAR:
+          s = (sharedvar *) pfrom;
 
+          explore_heap(s->var);
           break;
       }
     }
@@ -436,7 +445,6 @@ obj gc_malloc (size_t size){
 
 
 int main (int argc, char * argv[]) {
-  GC_INIT();
   gc_init();
   init_constants();
   execute(0);

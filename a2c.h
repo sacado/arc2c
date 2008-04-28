@@ -1,9 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <gc.h>
-
-#define GC_DEBUG
 
 #define HEAP_SIZE 500000
 #define FREE 0
@@ -11,12 +8,13 @@
 #define UNMARKED 2
 
 #define INITIAL_MAX_SYMS 50
-#define T_PAIR 0
-#define T_SYM  1
-#define T_TAG  2
-#define T_STR  3
-#define T_FN   4
-#define T_TBL  5
+#define T_PAIR      0
+#define T_SYM       1
+#define T_TAG       2
+#define T_STR       3
+#define T_FN        4
+#define T_TBL       5
+#define T_SHAREDVAR 6
 
 typedef long obj;
 
@@ -52,7 +50,7 @@ typedef struct {
 } table;
 
 typedef struct {
-  /*no type - should not be directly accessible by Arc*/
+  long type; /*T_SHAREDVAR*/
   obj var;
 } sharedvar;
 
@@ -182,7 +180,7 @@ obj cons_fun(obj a, obj d);
   }\
 }
 
-#define MAKE_SHAREDVAR() {sharedvar * p = GC_MALLOC(sizeof(sharedvar)); p->var = POP(); PUSH((obj)p);}
+#define MAKE_SHAREDVAR() {sharedvar * p = (sharedvar *) gc_malloc(sizeof(sharedvar)); p->type = T_SHAREDVAR; p->var = POP(); PUSH((obj)p);}
 #define READ_SHAREDVAR() {sharedvar * p = (sharedvar *) POP(); PUSH((obj)(p->var));}
 #define WRITE_SHAREDVAR() {obj v = POP(); sharedvar * p = (sharedvar *) POP(); p->var = v; PUSH(v);}
 

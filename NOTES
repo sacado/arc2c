@@ -23,15 +23,16 @@ variable, pc.  Then the calling function GOTOs the top of the switch structure
 C-macro.
 
 
-Function objects: (last modified Apr 7, 2008)
+Function objects: (last modified Apr 28, 2008)
 
 Functions are represented by a "closure" type which is simply a flat array
-of "obj".  It's *not* typed as of this writing, so it's not possible to
-get a legitimate type for a function.
+of "obj".  The [0] element is a type tag, while the [1] element specifies
+the length of the closure.
 
-The array's [0] element is a long.  This long is the numeric
+The array's [2] element is a long.  This long is the numeric
 representation of the function's "case" label.  Note that it is a real C
-long, not an Arc fixnum represented as an obj (which happens to be a long)
+long, not an Arc fixnum represented as an obj (which happens to be a long).
+Succeeding elements of the array are the enclosed variables.
 
 Closure-captured variables are stored in the rest of the array as a flat
 representation.
@@ -54,7 +55,7 @@ from the 0'th parameter, sets this to the pc, and jumps to the top of the
 switch.
 
 
-Mutable Local Variables: (last modified Apr 7, 2008)
+Mutable Local Variables: (last modified Apr 28, 2008)
 
 Closures in arc2c do not share variable space with other closures, even those
 defined in the same lexical scope.  This means that a mutation of one closure
@@ -83,8 +84,8 @@ example, the following code transformation is done:
 
 In this way, all assignments to local variables are eliminated.
 
-The "sharedvar" objects are completely invisible to the high-level Arc, and
-thus do not have a type code; they are simply a singleton container for the
-mutable local variable.
+The "sharedvar" objects are completely invisible to the high-level Arc; they
+are simply a singleton container for the mutable local variable.  Even so,
+they have a type code, solely for the garbage collector.
 
 

@@ -15,6 +15,7 @@
 #define T_FN        4
 #define T_TBL       5
 #define T_SHAREDVAR 6
+#define T_FLOAT     7
 
 typedef long obj;
 
@@ -50,6 +51,11 @@ typedef struct {
 } table;
 
 typedef struct {
+  long type; /* T_FLOAT */
+  double value;
+} flonum;
+
+typedef struct {
   long type; /*T_SHAREDVAR*/
   obj var;
 } sharedvar;
@@ -70,12 +76,14 @@ typedef struct {
 #define ASTR(o) (((obj*)(o))[0] == T_STR)
 #define AFN(o) (((obj*)(o))[0] == T_FN)
 #define ATBL(o) (((obj*)(o))[0] == T_TBL)
+#define AFLOAT(o) (((obj*)(o))[0] == T_FLOAT)
 
 #define FIX2OBJ(n) (((n) << 2) + 3)
 #define OBJ2FIX(o) ((o) >> 2)
 #define CHAR2OBJ(c) (((c) << 2) + 1)
 #define OBJ2CHAR(o) ((o) >> 2)
 
+obj DBL2OBJ (double d);
 obj SYM2OBJ (char * s); /* Find a symbol, or save it if it's the first time */
 
 #define GLOBAL(i) global[i]
@@ -91,6 +99,8 @@ char eq_str (string * a, string * b);
 #define EQ() { obj y = POP();\
   if (APTR(y) && ASTR(y))\
     TOS() = eq_str ((string *) y, (string *) TOS()) ? TOBJ : NILOBJ;\
+  else if (APTR(y) && AFLOAT(y))\
+    TOS() = ((flonum *)y)->value == ((flonum *)TOS())->value ? TOBJ : NILOBJ;\
   else\
     TOS() = TOS() == y ? TOBJ : NILOBJ; }
 
@@ -113,6 +123,7 @@ char eq_str (string * a, string * b);
       case T_STR: TOS() = SYM2OBJ("string"); break;\
       case T_FN: TOS() = SYM2OBJ("fn"); break;\
       case T_TBL: TOS() = SYM2OBJ("table"); break;\
+      case T_FLOAT: TOS() = SYM2OBJ("num"); break;\
     }\
   }\
 }
@@ -136,18 +147,75 @@ PUSH((obj)t);\
 #define ANNOTATE() { tagged * t = (tagged *) gc_malloc(sizeof(tagged)); t->type = T_TAG; t->content = POP(); t->ctype = POP(); PUSH((obj)t); }
 #define REP() { obj y = TOS(); if (APTR(y) && ATAG(y)) TOS() = ((tagged*)y)->content; }
 
-#define LT() { obj y = POP(); TOS() = TOS() < y ? TOBJ : NILOBJ; }
-#define GT() { obj y = POP(); TOS() = TOS() > y ? TOBJ : NILOBJ; }
-#define LE() { obj y = POP(); TOS() = TOS() <= y ? TOBJ : NILOBJ; }
-#define GE() { obj y = POP(); TOS() = TOS() >= y ? TOBJ : NILOBJ; }
-#define ADD() { obj y = POP();\
-  if (AFIX(y))\
-    TOS() = FIX2OBJ(OBJ2FIX(TOS()) + OBJ2FIX(y));\
-  else if (ASTR(y))\
+#define LT() { obj y = POP();\
+  if (AFIX(y) || ACHAR(y))\
+    TOS() = TOS() < y ? TOBJ : NILOBJ;\
+  else if (AFLOAT(y))\
+    TOS() = ((flonum*)TOS())->value < ((flonum*)y)->value ? TOBJ : NILOBJ;\
+}
+
+#define GT() { obj y = POP();\
+  if (AFIX(y) || ACHAR(y))\
+    TOS() = TOS() > y ? TOBJ : NILOBJ;\
+  else if (AFLOAT(y))\
+    TOS() = ((flonum*)TOS())->value > ((flonum*)y)->value ? TOBJ : NILOBJ;\
+}
+
+#define LE() { obj y = POP();\
+  if (AFIX(y) || ACHAR(y))\
+    TOS() = TOS() <= y ? TOBJ : NILOBJ;\
+  else if (AFLOAT(y))\
+    TOS() = ((flonum*)TOS())->value <= ((flonum*)y)->value ? TOBJ : NILOBJ;\
+}
+
+#define GE() { obj y = POP();\
+  if (AFIX(y) || ACHAR(y))\
+    TOS() = TOS() >= y ? TOBJ : NILOBJ;\
+  else if (AFLOAT(y))\
+    TOS() = ((flonum*)TOS())->value >= ((flonum*)y)->value ? TOBJ : NILOBJ;\
+}
+
+#define ADD() { obj y = POP(); obj z = POP();\
+  if (AFIX(y) && AFIX(z))\
+    PUSH(FIX2OBJ(OBJ2FIX(z) + OBJ2FIX(y)));\
+  else if (APTR(y) && AFLOAT(y) || APTR(z) && AFLOAT(z)){\
+    double a, b;\
+    flonum * res = (flonum *) gc_malloc (sizeof(flonum));\
+    res->type = T_FLOAT;\
+    a = (AFIX(y) ? (double) OBJ2FIX(y) : ((flonum*)y)->value);\
+    b = (AFIX(z) ? (double) OBJ2FIX(z) : ((flonum*)z)->value);\
+    res->value = a + b;\
+    PUSH((obj)res);\
+  }\
+  else if (APTR(y) && ASTR(y))\
     TOS() = (obj) string_concat ((string*) y, (string*) TOS());\
 }
-#define SUB() { long y = OBJ2FIX(POP()); TOS() = FIX2OBJ(OBJ2FIX(TOS()) - y); }
-#define MUL() { long y = OBJ2FIX(POP()); TOS() = FIX2OBJ(OBJ2FIX(TOS()) * y); }
+#define SUB() { obj y = POP(); obj z = POP();\
+  if (AFIX(y) && AFIX(z))\
+    PUSH(FIX2OBJ(OBJ2FIX(z) - OBJ2FIX(y)));\
+  else{\
+    /* One of them is a flonum */\
+    double a, b;\
+    flonum * res = (flonum *) gc_malloc(sizeof(flonum));\
+    res->type = T_FLOAT;\
+    a = (AFIX(y) ? (double) OBJ2FIX(y) : ((flonum*)y)->value);\
+    b = (AFIX(z) ? (double) OBJ2FIX(z) : ((flonum*)z)->value);\
+    res->value = b - a;\
+    PUSH((obj)res);\
+  }}
+#define MUL() { obj y = POP(); obj z = POP();\
+  if (AFIX(y) && AFIX(z))\
+    PUSH(FIX2OBJ(OBJ2FIX(z) * OBJ2FIX(y)));\
+  else{\
+    /* One of them is a flonum */\
+    double a, b;\
+    flonum * res = (flonum *) gc_malloc(sizeof(flonum));\
+    res->type = T_FLOAT;\
+    a = (AFIX(y) ? (double) OBJ2FIX(y) : ((flonum*)y)->value);\
+    b = (AFIX(z) ? (double) OBJ2FIX(z) : ((flonum*)z)->value);\
+    res->value = b * a;\
+    PUSH((obj)res);\
+  }}
 
 #define LEN() { obj y = TOS(); long r;\
   if (ASTR(y))\

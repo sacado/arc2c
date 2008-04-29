@@ -9,10 +9,20 @@
 (prn htest)
 (prn (htest 3))
 
+(prn (- 4.2 3.1))
+(prn (- 12.34567 5))
+
 (def fib (n)
-  (if (< n 2)
+  "The stupid fib implementation"
+  (if (> 2 n)
     n
     (+ (fib (-  n 1)) (fib (- n 2)))))
+
+(def ffact (n)
+  "Factorial, but with float numbers to see if we can handle them well"
+  (if (<= n 1.0)
+    1.0
+    (* n (ffact (- n 1.0)))))
 
 (def no (lst) (is lst nil))
 
@@ -50,6 +60,8 @@
 (prn utf8-test)
 (prn "The changed character was " #\u1234)
 (prn utf8-test.0 utf8-test.1 (utf8-test 2))
+
+(prn (ffact 10.0))
 
 (prn 'foo)
 (set foo (annotate 3 'foo))

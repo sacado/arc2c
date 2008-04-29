@@ -4,6 +4,16 @@ freelist freel;
 obj * closure;
 obj * sp;
 
+obj DBL2OBJ (double d){
+  flonum * res = (flonum *) gc_malloc(sizeof(flonum));
+
+  res->type  = T_FLOAT;
+  res->value = d;
+
+  return (obj) res;
+}
+
+
 obj SYM2OBJ (char * s){ /* Find a symbol, or save it if it's the first time */
   static symbol ** syms = NULL;
   static int max_syms   = 0;
@@ -278,6 +288,8 @@ void PR(){
   }
   else if (ASYM(y))
     printf ("%s", ((symbol *)y)->value);
+  else if (AFLOAT(y))
+    printf ("%g", ((flonum*)y)->value);
   else if (ASTR(y))
     printf ("%s", str2utf8 ((string *) y));
   else if (AFN(y))
@@ -340,8 +352,10 @@ void explore_heap(obj from){
 
     /*Why is this checking if it's FREE?
       shouldn't this process occur only
-      of there are no FREE heapspaces?*/
-    while (i < HEAP_SIZE && (freel.heap[i] != from || freel.mark[i] == FREE))
+      of there are no FREE heapspaces?
+      Because it might change in the future, but let's remove it for now
+      while (i < HEAP_SIZE && (freel.heap[i] != from || freel.mark[i] == FREE)) */
+    while (i < HEAP_SIZE && freel.heap[i] != from)
       i++;
 
     if (i < HEAP_SIZE && freel.mark[i] == UNMARKED){
@@ -358,6 +372,8 @@ void explore_heap(obj from){
           explore_heap(((tagged *)pfrom)->content);
           break;
         case T_STR:
+          break;
+        case T_FLOAT:
           break;
         case T_FN:
           fn = pfrom;

@@ -44,7 +44,8 @@
                 (is val t) (list " PUSH(TOBJ);")
                 (isa val 'char) (list " PUSH(CHAR2OBJ(" coerce.val!int "));")
                 (isa val 'string) (list " PUSH((obj)utf82str(\"" val "\"));")
-                (list " PUSH(FIX2OBJ(" val "));")))
+                (isa val 'num) (list " PUSH((obj)DBL2OBJ(" val "));")
+                (list " PUSH(FIX2OBJ(" (coerce (num val) 'int) "));"))) ; Just be sure it is an actual int, not something like 1.0
           (aquote ast)
             (let val ast!val
               (list " PUSH(QUOTE_CONSTANTS[" (add-constant val) "]"

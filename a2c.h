@@ -291,3 +291,9 @@ obj execute (int pc);
 
 obj QUOTE_CONSTANTS[NB_QUOTE_CONSTANTS];
 
+obj global[NB_GLOBALS];
+obj stack[MAX_STACK];
+freelist freel;
+obj * closure;
+obj * sp;
+

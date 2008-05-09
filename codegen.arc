@@ -37,12 +37,20 @@
 
       (= cg (fn (ast)
         (if
+          ; TODO: make aquote and alit the same!
           (alit ast)
             (let val ast!val
               (if
                 (no val) (list " PUSH(NILOBJ);")
                 (is val t) (list " PUSH(TOBJ);")
                 (isa val 'char) (list " PUSH(CHAR2OBJ(" coerce.val!int "));")
+                ; NONCANONICAL!
+                ; (def foo ()
+                ;   "string")
+                ; (sref (foo) #\x 0)
+                ; (prn (foo))
+                ; alit AST's should probably be stored in QUOTE_CONSTANTS
+                ; too
                 (isa val 'string) (list " PUSH((obj)utf82str(\"" val "\"));")
                 (isa val 'num) (list " PUSH((obj)DBL2OBJ(" val "));")
                 (list " PUSH(FIX2OBJ(" (coerce (num val) 'int) "));"))) ; Just be sure it is an actual int, not something like 1.0
@@ -144,17 +152,18 @@
         (= express
            (fn (e)
              (if
-               (number e) (list "FIX2OBJ(" e ")")
-               (no e) "SYM2OBJ(\"nil\")"
-               (isa e 'sym) (list "SYM2OBJ(" (tostring:write:string e) ")")
+               (isa e 'int) (list "PUSH(FIX2OBJ(" e "));\n")
+               (no e)       "PUSH(SYM2OBJ(\"nil\"));\n"
+               (isa e 'sym) (list "PUSH(SYM2OBJ(" (tostring:write:string e)
+                                  "));\n")
                (acons e)
-                 (list "cons_fun(" (express:car e) ", " (express:cdr e) ")")
+                 (list (express:car e) (express:cdr e) "CONS();\n")
                ;else
                  (err:string "not supported in quote form: "
                              (tostring:write e)))))
         (mapeach c cs
           (do1
-            (list "QUOTE_CONSTANTS[" i "] = " (express c) ";\n")
+            (list (express c) "QUOTE_CONSTANTS[" i "] = POP();\n")
             (++ i))))))
 
   (add-lambda ast)
@@ -165,7 +174,7 @@
       code-header*
       (if constant-todo
         ; constants were defined; initialize
-        (list "void init_constants(void){\n"
+        (list "void init_constants(void){\nsp = stack;\n"
               (compile-constants:rev constant-todo)
               "}\n")
         ; no constants; dummy initialize

@@ -1,8 +1,3 @@
-obj global[NB_GLOBALS];
-obj stack[MAX_STACK];
-freelist freel;
-obj * closure;
-obj * sp;
 
 obj DBL2OBJ (double d){
   flonum * res = (flonum *) gc_malloc(sizeof(flonum));

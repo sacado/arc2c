@@ -233,8 +233,14 @@ PUSH((obj)t);\
 obj cons_fun(obj a, obj d);
 
 #define CONS() { pair * p = (pair *) gc_malloc(sizeof(pair)); p->type = T_PAIR ; p->cdr = POP(); p->car = POP(); PUSH((obj)p); }
-#define CAR() { if (TOS() != NILOBJ) {pair * p = (pair *) POP(); PUSH((obj)(p->car)); }}
-#define CDR() { if (TOS() != NILOBJ) {pair * p = (pair *) POP(); PUSH((obj)(p->cdr)); }}
+#define CAR() { if (TOS() != NILOBJ) {\
+  pair * p = (pair *) POP();\
+  if(p->type != T_PAIR) ERROR("badargs", "car expects argument of type 'cons"); \
+  PUSH((obj)(p->car)); }}
+#define CDR() { if (TOS() != NILOBJ) {\
+  pair * p = (pair *) POP(); \
+  if(p->type != T_PAIR) ERROR("badargs", "cdr expects argument of type 'cons");\
+  PUSH((obj)(p->cdr)); }}
 
 #define SREF() { obj idx, val, var; string * s; table * t;\
   idx = POP(); val = POP(); var = TOS();\
@@ -254,6 +260,11 @@ obj cons_fun(obj a, obj d);
 
 #define CURR_ERR() PUSH(errhandler)
 #define SET_ERR() (errhandler = TOS())
+#define ERROR(t,v) {BEGIN_JUMP(3); \
+  PUSH(errhandler); PUSH(LOCAL(1) /*local continuation*/); \
+  /*(annotate (sym t) (string v))*/ \
+  PUSH(SYM2OBJ(t)); PUSH((obj)utf82str(v)); ANNOTATE(); \
+  END_JUMP(3);}
 
 #define PRN() { PR(); printf ("\n");}
 void PR();

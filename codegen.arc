@@ -68,6 +68,10 @@
           (aprim ast)
             (let args ast!subx
               (if
+                (is ast!op '%set-err)
+                  (list (cg-args args stack-env) " SET_ERR();")
+                (is ast!op '%curr-err)
+                  (list (cg-args args stack-env) " CURR_ERR();")
                 (is ast!op '%sharedvar)
                   (list (cg-args args stack-env) " MAKE_SHAREDVAR();")
                 (is ast!op '%sharedvar-read)
@@ -104,7 +108,7 @@
                 (is ast!op '%closure-ref)
                   (let i ((cadr args) 'val)
                     (list (cg (car args)) " TOS() = CLOSURE_REF(TOS()," i ");"))
-                (err "unknown primitive" ast!op)))
+                (err:string "unknown primitive" ast!op)))
           (anapp ast)
             (withs
               (fun (car ast!subx)
@@ -202,6 +206,7 @@ obj execute (int pc)
   sp         = stack;
   obj NILOBJ = SYM2OBJ (\"nil\");
   obj TOBJ   = SYM2OBJ (\"t\");
+  obj errhandler; /*TODO: make this thread-local*/
   long num_args = 0;
 
   jump: switch (pc) {

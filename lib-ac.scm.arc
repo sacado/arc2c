@@ -103,6 +103,41 @@
   (fn (c v i)
     (%sref c v i)))
 
+(set err
+  (fn (e)
+    ((%curr-err) e)))
+
+(%set-err
+  (fn (e)
+    ; TODO: print to stderr
+    (%pr "Error type: ")
+    (%prn (%type e))
+    (%pr "Error: ")
+    (%prn (%rep e))
+    (%halt)))
+
+(set on-err
+  (fn (fh f)
+    ((fn (tmp) ; contains previous error handler
+       (ccc
+         (fn (k)
+           ; prevent a continuation from escaping
+           ; the on-err handler
+           ; (%cont-guard-up) ; TODO: implement this!
+           (%set-err
+             (fn (e)
+               ; (%cont-guard-down) ; TODO: implement this!
+               ; the error handler runs with
+               ; the error context of the parent
+               (%set-err tmp)
+               (k (fh e))))
+           ((fn (rv) ; return value of protected function
+              ; (%cont-guard-down) ; TODO: implement this!
+              (%set-err tmp)
+              rv)
+            (f)))))
+     (%curr-err))))
+
 ; arguably the "wrong" place to put this in, since
 ; this is part of arc.arc, but useful anyway
 (set list

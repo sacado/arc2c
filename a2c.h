@@ -252,6 +252,9 @@ obj cons_fun(obj a, obj d);
 #define READ_SHAREDVAR() {sharedvar * p = (sharedvar *) POP(); PUSH((obj)(p->var));}
 #define WRITE_SHAREDVAR() {obj v = POP(); sharedvar * p = (sharedvar *) POP(); p->var = v; PUSH(v);}
 
+#define CURR_ERR() PUSH(errhandler)
+#define SET_ERR() (errhandler = TOS())
+
 #define PRN() { PR(); printf ("\n");}
 void PR();
 

@@ -23,7 +23,7 @@
   (withs (global-env (table)
           deep-copy nil
           symeval
-            (fn (e (o env global-env))
+            (rfn symeval (e (o env global-env))
               (unless (isa e 'sym)
                 (err:tostring:pr "make-eval/symeval: not a symbol - " e))
               (if env

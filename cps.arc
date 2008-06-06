@@ -48,9 +48,17 @@
 
 
 (def cps-convert (ast)
-  (let ast-cps (cps ast (let r (new-var 'r) (make-lam (list:make-prim (list:make-ref '() r) '%halt) (list r))))
+  (let ast-cps
+         (cps
+           ast
+           (let r (new-var 'r)
+             (make-lam
+               (list:make-prim (list:make-ref '() r) '%halt)
+               (list r))))
     (if (lookup 'ccc (fv ast))
         ; add this definition for call/cc if call/cc is needed
-      (make-app:list (make-lam (list ast-cps) (list (new-var '_))) (xe '(set ccc (fn (k f) (f k (fn (_ result) (k result))))) '()))
+      (make-app:list
+        (make-lam (list ast-cps) (list (new-var '_)))
+        (xe '(set ccc (fn (k f) (f k (fn (_ result) (k result))))) '()))
       ast-cps)))
 

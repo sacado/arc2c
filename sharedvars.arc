@@ -86,6 +86,11 @@
         (make-app (sc ast!subx))
       (alam ast)
         (with (params ast!params
+               ; TODO: shared should only have local variables that are:
+               ; 1. assigned anywhere, and
+               ; 2. are used in more than one sub-lambda
+               ; Note however that we then have to handle assignments
+               ; to locals in the codegen
                shared (lv-set ast)
                proper-params)
           (= proper-params (properify params))

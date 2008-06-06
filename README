@@ -1,3 +1,7 @@
+                _
+    .-.   --\  /    arc2c
+   /   \  --/  \_
+
 This is the Arc to C compiler.
 
 Arc is the new Lisp from Paul Graham (http://arclanguage.org). It's official release is currently implemented as an interpreter above mzscheme.

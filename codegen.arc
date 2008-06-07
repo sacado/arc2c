@@ -31,7 +31,7 @@
             (cg-list (cdr asts) (cdr vars) (cons (car vars) stack-env) sep (fn (code stack-env) (k (list x sep code) stack-env)))))))
 
       (= cg-args (fn (args stack-env)
-        (cg-list args (range 1 (len args)) stack-env "" (fn (code stack-env) code))))
+        (cg-list args (if args (range 1 (len args))) stack-env "" (fn (code stack-env) code))))
 
       (= access-var (fn (var stack-env)
         (if (aglobal var)
@@ -117,7 +117,7 @@
                     (i (add-lambda (car args))
                      n (len (cdr args))
                      s (list "CLOSURE(" i "," n ");"))
-                    (list (cg-args (cdr args) stack-env) " BEGIN_" s (map [list " INICLO(" _ ");"] (rev:range 1 n)) " END_" s))
+                    (list (cg-args (cdr args) stack-env) " BEGIN_" s (map [list " INICLO(" _ ");"] (if (isnt n 0) (rev:range 1 n))) " END_" s))
                 (is ast!op '%closure-ref)
                   (let i ((cadr args) 'val)
                     (list (cg (car args)) " TOS() = CLOSURE_REF(TOS()," i ");"))
@@ -129,11 +129,11 @@
                n (len args))
               (if (alam fun)
                 (cg-list args (properify fun!params) stack-env "\n" (fn (code new-stack-env) (list code (code-gen (car fun!subx) new-stack-env))))
-                (cg-list args (range 1 n) stack-env "\n" (fn (code new-stack-env)
+                (cg-list args (if (isnt 0 n) (range 1 n)) stack-env "\n" (fn (code new-stack-env)
                   (with
                     (start (len stack-env)
                      s (list "JUMP(" n ");"))
-                    (list code " BEGIN_" s (map [list " PUSH(LOCAL(" (+ _ start) "));"] (range 0 (- n 1))) " END_" s))))))
+                    (list code " BEGIN_" s (map [list " PUSH(LOCAL(" (+ _ start) "));"] (if (isnt n 0) (range 0 (- n 1)))) " END_" s))))))
           (alam ast) ; this case is impossible after CPS-conversion
             (list " PUSH(FIX2OBJ(" (add-lambda ast) "));")
           (aseq ast) ; this case is impossible after CPS-conversion

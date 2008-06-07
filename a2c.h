@@ -228,7 +228,7 @@ PUSH((obj)t);\
     a = (AFIX(y) ? (double) OBJ2FIX(y) : ((flonum*)y)->value);\
     b = (AFIX(z) ? (double) OBJ2FIX(z) : ((flonum*)z)->value);\
     res->value = b / a;\
-    TOS() = res;\
+    TOS() = (obj)res;\
   } else {\
     ERROR("badargs","/ expects both arguments to be numbers");\
   }\

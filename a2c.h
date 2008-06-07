@@ -297,7 +297,14 @@ void PR();
 
 //place arguments exceeding nbreq into a list at the top of
 //the stack
-#define VARIADIC2LIST(nbreq) for(PUSH(NILOBJ); num_args > nbreq; num_args--) CONS()
+#define VARIADIC2LIST(nbreq) {\
+	for(PUSH(NILOBJ); num_args > nbreq; --num_args) CONS();\
+	if(num_args != nbreq){\
+		ERROR("apply",\
+			"Expected at least " #nbreq " arguments")\
+	}\
+	++num_args;}
+#define CHECK_PARAMS(n) {if(num_args != (n)) ERROR("apply","Expected " #n " arguments");}
 
 #define BEGIN_CLOSURE(label,nbfree) closure = (obj *) gc_malloc(sizeof(obj) * (nbfree + 3));
 #define INICLO(i) closure[i+2] = POP();

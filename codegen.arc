@@ -151,13 +151,12 @@
         (pop lambda-todo)
           (list
             "case " (car x) ":\n\n"
-            ; if variadic, insert variadic handling code
-            (if (dotted ast!params)
-              ; determine the number of required arguments
-              (let num-reqs (- (len:properify ast!params) 1)
-                (list " VARIADIC2LIST(" num-reqs ");\n")))
-            ; TODO: <insert code to check that caller passed
-            ; correct number of arguments here>
+            ; determine the number of required arguments
+            (let num-reqs (len:properify ast!params)
+              ; if variadic, use variadic handling code
+              (if (dotted ast!params)
+                  (list " VARIADIC2LIST(" (- num-reqs 1) ");\n")
+                  (list " CHECK_PARAMS(" num-reqs ");\n")))
             (code-gen (car ast!subx) (rev:properify ast!params))
             "\n\n"
             (compile-all-lambdas))))))

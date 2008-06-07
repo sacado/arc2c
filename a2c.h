@@ -188,7 +188,7 @@ PUSH((obj)t);\
     PUSH((obj)res);\
   }\
   else if (APTR(y) && ASTR(y))\
-    TOS() = (obj) string_concat ((string*) y, (string*) TOS());\
+    PUSH((obj) string_concat((string*) y, (string*) z));\
 }
 #define SUB() { obj y = POP(); obj z = POP();\
   if (AFIX(y) && AFIX(z))\

@@ -138,10 +138,18 @@
             (f)))))
      (%curr-err))))
 
+(set call* (%table))
+(%sref call* (fn (l i) (%list-ref l i)) 'cons)
+(%sref call* (fn (s i) (%string-ref s i)) 'string)
+(%sref call* (fn (tbl i) (%table-ref tbl i)) 'table)
+
 ; arguably the "wrong" place to put this in, since
 ; this is part of arc.arc, but useful anyway
 (set list
   (fn rest rest))
+
+(set no
+  (fn (x) (is x nil)))
 
 ;-----------------------------------------------------------------------------
 ))

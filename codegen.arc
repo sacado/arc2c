@@ -17,6 +17,11 @@
      compile-all-lambdas nil
      compile-constants nil)
 
+  ; make sure global-vars includes call*
+  (unless (some [is _!id _!uid 'call*]
+                global-vars)
+    (push (new-global 'call*) global-vars))
+
   (= code-gen (fn (ast stack-env)
     (let (cg-list cg-args access-var cg) nil
       (= cg-list (fn (asts vars stack-env sep k)
@@ -68,6 +73,12 @@
           (aprim ast)
             (let args ast!subx
               (if
+                (is ast!op '%string-ref)
+                  (list (cg-args args stack-env) " STRING_REF();")
+                (is ast!op '%list-ref)
+                  (list (cg-args args stack-env) " LIST_REF();")
+                (is ast!op '%table-ref)
+                  (list (cg-args args stack-env) " TABLE_REF();")
                 (is ast!op '%set-err)
                   (list (cg-args args stack-env) " SET_ERR();")
                 (is ast!op '%curr-err)
@@ -143,7 +154,7 @@
               ; determine the number of required arguments
               (let num-reqs (- (len:properify ast!params) 1)
                 (list " VARIADIC2LIST(" num-reqs ");\n")))
-            ; <insert code to check that caller passed
+            ; TODO: <insert code to check that caller passed
             ; correct number of arguments here>
             (code-gen (car ast!subx) (rev:properify ast!params))
             "\n\n"
@@ -174,7 +185,12 @@
 
   (let code (compile-all-lambdas)
     (list
-      (list "#define NB_GLOBALS " (len global-vars) "\n"  "#define MAX_STACK " 2000 "\n" "#define NB_QUOTE_CONSTANTS " constant-count "\n")
+      (list "#define NB_GLOBALS " (len global-vars) "\n"
+            "#define MAX_STACK " 2000 "\n"
+            "#define NB_QUOTE_CONSTANTS " constant-count "\n"
+            "#define CALL_STAR GLOBAL("
+              (pos [is _!uid _!id 'call*] global-vars)
+            ")\n")
       code-header*
       (if constant-todo
         ; constants were defined; initialize

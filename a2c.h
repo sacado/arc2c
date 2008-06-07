@@ -280,20 +280,56 @@ void PR();
 #define END_CLOSURE(label,nbfree) closure[0] = T_FN; closure[1] = nbfree; closure[2] = label; PUSH((obj)closure);
 
 #define BEGIN_JUMP(nbargs) {sp = stack; num_args = nbargs;}
-#define END_JUMP(nbargs) { obj o = LOCAL(0);\
-if (!AFN(o)){\
-  BEGIN_JUMP(2); PUSH(LOCAL(1));\
-  if (ATBL(o)){\
-    PUSH(tbl_lookup((table *) o, LOCAL(2)));\
-  } else if (ASTR(o)){\
-    PUSH(CHAR2OBJ(((string *) o)->cpts[OBJ2FIX(LOCAL(2))]));\
-  } else if (APAIR(o)){\
-    long idx = OBJ2FIX(LOCAL(2));\
-    while (idx > 0){ idx--; o = ((pair *) o)->cdr; }\
-    PUSH(((pair *) o)->car);\
-  }\
+#define END_JUMP(nbargs) { obj o, f;\
+while(!AFN(LOCAL(0))){\
+	o = LOCAL(0);\
+	/*NOTE: we need to implement type and rep as "functions"\
+	rather than as stack-based operators*/\
+	PUSH(o); TYPE();\
+	TOS() = tbl_lookup((table*) CALL_STAR, TOS());\
+	if(TOS() == NILOBJ){\
+		/*can't use ERROR macro, it's defined in terms*/\
+		/*of END_JUMP()*/\
+		BEGIN_JUMP(3); CURR_ERR(); PUSH(LOCAL(1));\
+		PUSH(SYM2OBJ("apply"));\
+		PUSH((obj)utf82str("Function call on inappropriate object"));\
+		ANNOTATE();\
+	} else {\
+		f = TOS(); TOS() = o; REP(); o = TOS();\
+		memmove(&LOCAL(3), &LOCAL(2),(num_args-2) * sizeof(obj));\
+		++num_args;\
+		LOCAL(2) = o;\
+		LOCAL(0) = f;\
+	}\
 }\
 closure = (obj *) LOCAL(0); pc = closure[2]; goto jump;}
+
+#define LIST_REF() {\
+long idx; obj i = POP();\
+if(!AFIX(i)) ERROR("badargs",\
+		   "list-ref expects an integer for second argument");\
+idx = OBJ2FIX(i);\
+if(idx < 0) ERROR("badargs",\
+		  "list-ref expects a positive integer for second argument");\
+for(; idx != 0; --idx){\
+	CDR();}\
+CAR();\
+}
+#define TABLE_REF(){\
+obj i = POP();\
+if(!ATBL(TOS())) ERROR("badargs",\
+		       "table-ref expects a table for first argument");\
+TOS() = tbl_lookup((table*) TOS(), i);\
+}
+#define STRING_REF(){\
+long idx; obj i = POP();\
+if(!AFIX(i)) ERROR("badargs",\
+		   "string-ref expects an integer for second argument");\
+idx = OBJ2FIX(i);\
+if(!ASTR(TOS())) ERROR("badargs",\
+		       "string-ref expects a string for first argument"); \
+TOS() = CHAR2OBJ(((string*) TOS())->cpts[idx]);\
+}
 
 
 void gc_init();

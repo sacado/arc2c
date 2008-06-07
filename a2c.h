@@ -218,7 +218,7 @@ PUSH((obj)t);\
   }}
 
 #define LEN() { obj y = TOS(); long r;\
-  if (ASTR(y))\
+  if (APTR(y) && ASTR(y))\
     TOS() = FIX2OBJ(((string *) y)->size);\
   else{\
     r = 0;\
@@ -244,11 +244,11 @@ obj cons_fun(obj a, obj d);
 
 #define SREF() { obj idx, val, var; string * s; table * t;\
   idx = POP(); val = POP(); var = TOS();\
-  if (ASTR(var)){\
+  if (APTR(var) && ASTR(var)){\
     s = (string *) var;\
     s->cpts[OBJ2FIX(idx)] = OBJ2CHAR(val);\
   }\
-  else if (ATBL(var)){\
+  else if (APTR(var) && ATBL(var)){\
     t = (table *) var;\
     set_tbl (t, idx, val);\
   }\
@@ -281,7 +281,7 @@ void PR();
 
 #define BEGIN_JUMP(nbargs) {sp = stack; num_args = nbargs;}
 #define END_JUMP(nbargs) { obj o, f;\
-while(!AFN(LOCAL(0))){\
+while(!(APTR(LOCAL(0)) && AFN(LOCAL(0)))){\
 	o = LOCAL(0);\
 	/*NOTE: we need to implement type and rep as "functions"\
 	rather than as stack-based operators*/\
@@ -317,17 +317,19 @@ CAR();\
 }
 #define TABLE_REF(){\
 obj i = POP();\
-if(!ATBL(TOS())) ERROR("badargs",\
-		       "table-ref expects a table for first argument");\
+if(!(APTR(TOS()) && ATBL(TOS())))\
+	ERROR("badargs",\
+		"table-ref expects a table for first argument");\
 TOS() = tbl_lookup((table*) TOS(), i);\
 }
 #define STRING_REF(){\
 long idx; obj i = POP();\
 if(!AFIX(i)) ERROR("badargs",\
-		   "string-ref expects an integer for second argument");\
+		"string-ref expects an integer for second argument");\
 idx = OBJ2FIX(i);\
-if(!ASTR(TOS())) ERROR("badargs",\
-		       "string-ref expects a string for first argument"); \
+if(!(APTR(TOS()) && ASTR(TOS())))\
+	ERROR("badargs",\
+		"string-ref expects a string for first argument"); \
 TOS() = CHAR2OBJ(((string*) TOS())->cpts[idx]);\
 }
 

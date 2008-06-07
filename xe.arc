@@ -56,6 +56,8 @@
 (add-macro + 2)
 (add-macro - 2)
 (add-macro * 2)
+(add-macro / 2)
+(add-macro mod 2)
 
 (push (make-macro 'do
   (fn (e cte)

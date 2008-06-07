@@ -216,6 +216,30 @@ PUSH((obj)t);\
     res->value = b * a;\
     PUSH((obj)res);\
   }}
+#define DIV() {obj y = POP(); obj z= TOS();\
+  if(AFIX(y) && AFIX(z)){\
+    TOS() = FIX2OBJ(OBJ2FIX(z) / OBJ2FIX(y));\
+  } else if((AFIX(y) || (APTR(y) && AFLOAT(y))) &&\
+            (AFIX(z) || (APTR(z) && AFLOAT(z)))){\
+    /* One of them is a flonum */\
+    double a, b;\
+    flonum * res = (flonum *) gc_malloc(sizeof(flonum));\
+    res->type = T_FLOAT;\
+    a = (AFIX(y) ? (double) OBJ2FIX(y) : ((flonum*)y)->value);\
+    b = (AFIX(z) ? (double) OBJ2FIX(z) : ((flonum*)z)->value);\
+    res->value = b / a;\
+    TOS() = res;\
+  } else {\
+    ERROR("badargs","/ expects both arguments to be numbers");\
+  }\
+}
+#define MOD() { obj y= POP();\
+  if(AFIX(y) && AFIX(TOS())){\
+    TOS() = FIX2OBJ(OBJ2FIX(TOS()) % OBJ2FIX(y));\
+  } else {\
+    ERROR("badargs","mod expects both arguments to be exact integers");\
+  }\
+}
 
 #define LEN() { obj y = TOS(); long r;\
   if (APTR(y) && ASTR(y))\

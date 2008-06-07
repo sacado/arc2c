@@ -106,6 +106,8 @@
                 (is ast!op '%+) (list (cg-args args stack-env) " ADD();")
                 (is ast!op '%-) (list (cg-args args stack-env) " SUB();")
                 (is ast!op '%*) (list (cg-args args stack-env) " MUL();")
+                (is ast!op '%/) (list (cg-args args stack-env) " DIV();")
+                (is ast!op '%mod) (list (cg-args args stack-env) " MOD();")
                 (is ast!op '%pr) (list (cg-args args stack-env) " PR();") 
                 (is ast!op '%prn) (list (cg-args args stack-env) " PRN();")
                 (is ast!op '%table) (list (cg-args args stack-env) " TBL();")

@@ -73,6 +73,8 @@
           (aprim ast)
             (let args ast!subx
               (if
+                (is ast!op '%apply)
+                  (list (cg-args args stack-env) " APPLY();")
                 (is ast!op '%string-ref)
                   (list (cg-args args stack-env) " STRING_REF();")
                 (is ast!op '%list-ref)
@@ -155,8 +157,12 @@
             (let num-reqs (len:properify ast!params)
               ; if variadic, use variadic handling code
               (if (dotted ast!params)
-                  (list " VARIADIC2LIST(" (- num-reqs 1) ");\n")
-                  (list " CHECK_PARAMS(" num-reqs ");\n")))
+                  ; the second argument is the arc-side expected number of
+                  ; arguments (arguments include the function to execute as
+                  ; well as the continuation, which the arc-side programmer
+                  ; doesn't care about)
+                  (list " VARIADIC2LIST(" (- num-reqs 1) "," (- num-reqs 3) ");\n")
+                  (list " CHECK_PARAMS(" num-reqs "," (- num-reqs 2) ");\n")))
             (code-gen (car ast!subx) (rev:properify ast!params))
             "\n\n"
             (compile-all-lambdas))))))

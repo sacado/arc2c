@@ -138,6 +138,16 @@
             (f)))))
      (%curr-err))))
 
+(set $cons*-base
+  (fn (con)
+    (if (cdr con)
+        (cons (car con) ($cons*-base (cdr con)))
+        (car con))))
+
+(set apply
+  (fn (f . rest)
+    (<arc2c>!apply f ($cons*-base rest))))
+
 (set call* (%table))
 (%sref call* (fn (l i) (%list-ref l i)) 'cons)
 (%sref call* (fn (s i) (%string-ref s i)) 'string)

@@ -72,7 +72,7 @@
       (diff readset writeset)
         ; allow some undefined globals: these are inserted later in
         ; the transformation
-        (if (all [in _!uid 'ccc] it)
+        (if (all [in _!uid 'ccc '<arc2c>!apply] it)
           ast
           (err:tostring:pr "Global variables read, but aren't assigned to: "
                            (map [_ 'uid] it)))

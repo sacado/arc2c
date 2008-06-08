@@ -48,17 +48,39 @@
 
 
 (def cps-convert (ast)
-  (let ast-cps
-         (cps
-           ast
-           (let r (new-var 'r)
-             (make-lam
-               (list:make-prim (list:make-ref '() r) '%halt)
-               (list r))))
+  (with (ast-cps
+          (cps
+            ast
+            (let r (new-var 'r)
+              (make-lam
+                (list:make-prim (list:make-ref '() r) '%halt)
+                (list r))))
+         primvar
+         (fn (var)
+           (and (aglobal var)
+                (is #\% ((string var!id) 0))))
+         primitivize nil)
+    (= primitivize
+       (fn (ast)
+         (if
+           (and (anapp ast)
+                (aref:car ast!subx)
+                (primvar ((car ast!subx) 'var)))
+             (make-prim (map primitivize (cdr ast!subx))
+                        (((car ast!subx) 'var) 'id))
+           ; else
+             (do (zap [map primitivize _] ast!subx)
+                 ast))))
     (if (lookup 'ccc (fv ast))
-        ; add this definition for call/cc if call/cc is needed
-      (make-app:list
-        (make-lam (list ast-cps) (list (new-var '_)))
-        (xe '(set ccc (fn (k f) (f k (fn (_ result) (k result))))) '()))
-      ast-cps)))
+      ; add this definition for call/cc if call/cc is needed
+      (= ast-cps
+        (make-app:list
+          (make-lam (list ast-cps) (list (new-var '_)))
+          (xe '(set ccc (fn (k f) (f k (fn (_ result) (k result))))) '()))))
+    (if (lookup '<arc2c>!apply (fv ast))
+      (= ast-cps
+         (make-app:list
+          (make-lam (list ast-cps) (list (new-var '_)))
+          (primitivize:xe '(set <arc2c>!apply (fn (k f l) (%apply f k l))) '()))))
+    ast-cps))
 

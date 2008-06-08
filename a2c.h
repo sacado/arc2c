@@ -297,14 +297,14 @@ void PR();
 
 //place arguments exceeding nbreq into a list at the top of
 //the stack
-#define VARIADIC2LIST(nbreq) {\
+#define VARIADIC2LIST(nbreq, expected) {\
 	for(PUSH(NILOBJ); num_args > nbreq; --num_args) CONS();\
 	if(num_args != nbreq){\
 		ERROR("apply",\
-			"Expected at least " #nbreq " arguments")\
+			"Expected at least " #expected " arguments")\
 	}\
 	++num_args;}
-#define CHECK_PARAMS(n) {if(num_args != (n)) ERROR("apply","Expected " #n " arguments");}
+#define CHECK_PARAMS(n, expected) {if(num_args != (n)) ERROR("apply","Expected " #expected " arguments");}
 
 #define BEGIN_CLOSURE(label,nbfree) closure = (obj *) gc_malloc(sizeof(obj) * (nbfree + 3));
 #define INICLO(i) closure[i+2] = POP();
@@ -334,6 +334,15 @@ while(!(APTR(LOCAL(0)) && AFN(LOCAL(0)))){\
 	}\
 }\
 closure = (obj *) LOCAL(0); pc = closure[2]; goto jump;}
+#define APPLY() { obj l = POP(); obj k = POP(); obj f = TOS();\
+	sp = stack; PUSH(f); PUSH(k);\
+	for(num_args = 2; l != NILOBJ; ++num_args){\
+		PUSH(l); CAR();\
+		l = (obj) ((pair*)l)->cdr;\
+	}\
+	END_JUMP(num_args);\
+}
+
 
 #define LIST_REF() {\
 long idx; obj i = POP();\

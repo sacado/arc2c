@@ -1,5 +1,10 @@
 ; CPS conversion
 
+(def make-cont (subx params)
+  (let ast (make-lam subx params)
+    (assert ast!continuation)
+    ast))
+
 (def cps (ast k-ast)
   (if
     (or (alit ast) (aref ast) (aquote ast))
@@ -18,6 +23,7 @@
     (anapp ast)
       (let fun (car ast!subx)
         (if (alam fun)
+          ; let form
           (cps-list (cdr ast!subx) [make-app (cons (make-lam (list:cps-seq fun!subx k-ast) fun!params) _)])
           (cps-list ast!subx [make-app (cons (car _) (cons k-ast (cdr _)))])))
     (alam ast)
@@ -35,7 +41,7 @@
       (or (alit (car asts)) (aref (car asts)))
         (body (car asts))
         (let r (new-var 'r)
-          (cps (car asts) (make-lam (list:body:make-ref '() r) (list r)))))))
+          (cps (car asts) (make-cont (list:body:make-ref '() r) (list r)))))))
 
 (def cps-seq (asts k-ast)
   (if
@@ -44,7 +50,7 @@
     (no (cdr asts))
       (cps (car asts) k-ast)
       (let r (new-var 'r)
-        (cps (car asts) (make-lam (list:cps-seq (cdr asts) k-ast) (list r))))))
+        (cps (car asts) (make-cont (list:cps-seq (cdr asts) k-ast) (list r))))))
 
 
 (def cps-convert (ast)
@@ -52,7 +58,7 @@
           (cps
             ast
             (let r (new-var 'r)
-              (make-lam
+              (make-cont
                 (list:make-prim (list:make-ref '() r) '%halt)
                 (list r))))
          primvar

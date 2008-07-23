@@ -22,7 +22,9 @@
           (fun (car ast!subx)
            args (map cc (cdr ast!subx)))
           (if (alam fun)
-            (make-app:cons (make-lam (list:cc (car fun!subx)) fun!params) args)
+            (make-app:cons
+              ((if fun!continuation make-cont make-lam)
+                (list:cc (car fun!subx)) fun!params) args)
             (let f (cc fun)
               (make-app:cons (make-prim (list f (make-lit '() 0)) '%closure-ref) (cons f args)))))
       (alam ast)
@@ -31,7 +33,7 @@
            new-self-var (new-var 'self))
           (make-prim
             (cons
-              (make-lam
+              ((if ast!continuation make-cont make-lam)
                 (list:convert (car ast!subx) new-self-var new-free-vars)
                 (cons new-self-var ast!params))
               (map [cc (make-ref '() _)] new-free-vars))

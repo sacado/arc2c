@@ -116,10 +116,16 @@
                 (is ast!op '%halt) (list (cg-args args stack-env) " HALT();")
                 (is ast!op '%closure)
                   (withs
-                    (i (add-lambda (car args))
+                    (f (car args)
+                     i (add-lambda f)
                      n (len (cdr args))
                      s (list "CLOSURE(" i "," n ");"))
-                    (list (cg-args (cdr args) stack-env) " BEGIN_" s (map [list " INICLO(" _ ");"] (if (isnt n 0) (rev:range 1 n))) " END_" s))
+                    (list
+                      (cg-args (cdr args) stack-env)
+                      " BEGIN_" s
+                      (map [list " INICLO(" _ ");"]
+                           (if (isnt n 0) (rev:range 1 n)))
+                      " END_" (if f!continuation "K_") s))
                 (is ast!op '%closure-ref)
                   (let i ((cadr args) 'val)
                     (list (cg (car args)) " TOS() = CLOSURE_REF(TOS()," i ");"))

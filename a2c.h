@@ -16,6 +16,8 @@
 #define T_TBL       5
 #define T_SHAREDVAR 6
 #define T_FLOAT     7
+#define T_KFN       8 // a reusable continuation (default)
+#define T_LKFN      9 // a non-reusable continuation (after 'ccc)
 
 typedef long obj;
 
@@ -74,7 +76,10 @@ typedef struct {
 #define APAIR(o) (((obj*)(o))[0] == T_PAIR)
 #define ATAG(o) (((obj*)(o))[0] == T_TAG)
 #define ASTR(o) (((obj*)(o))[0] == T_STR)
-#define AFN(o) (((obj*)(o))[0] == T_FN)
+int AFN(obj o){
+	obj* op = (obj*)(o);
+	return o[0] == T_FN || o[0] == T_KFN || o[0] == T_LKFN;
+}
 #define ATBL(o) (((obj*)(o))[0] == T_TBL)
 #define AFLOAT(o) (((obj*)(o))[0] == T_FLOAT)
 
@@ -121,7 +126,10 @@ char eq_str (string * a, string * b);
       case T_PAIR: TOS() = SYM2OBJ("cons"); break;\
       case T_SYM: TOS() = SYM2OBJ("sym"); break;\
       case T_STR: TOS() = SYM2OBJ("string"); break;\
-      case T_FN: TOS() = SYM2OBJ("fn"); break;\
+      case T_FN:\
+      case T_KFN:\
+      case T_LKFN:\
+          TOS() = SYM2OBJ("fn"); break;\
       case T_TBL: TOS() = SYM2OBJ("table"); break;\
       case T_FLOAT: TOS() = SYM2OBJ("num"); break;\
     }\
@@ -309,6 +317,8 @@ void PR();
 #define BEGIN_CLOSURE(label,nbfree) closure = (obj *) gc_malloc(sizeof(obj) * (nbfree + 3));
 #define INICLO(i) closure[i+2] = POP();
 #define END_CLOSURE(label,nbfree) closure[0] = T_FN; closure[1] = nbfree; closure[2] = label; PUSH((obj)closure);
+
+#define END_K_CLOSURE(label,nbfree) closure[0] = T_KFN; closure[1] = nbfree; closure[2] = label; PUSH((obj)closure);
 
 #define BEGIN_JUMP(nbargs) {sp = stack; num_args = nbargs;}
 #define END_JUMP(nbargs) { obj o, f;\

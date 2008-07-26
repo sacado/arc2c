@@ -153,12 +153,9 @@
   (= compile-all-lambdas (fn ()
     (if (no lambda-todo)
       ""
-      (withs
-        (x (car lambda-todo)
-         ast (cdr x))
-        (pop lambda-todo)
+      (let (x . ast) (pop lambda-todo)
           (list
-            "case " (car x) ":\n\n"
+            "case " x ":\n\n"
             ; determine the number of required arguments
             (let num-reqs (len:properify ast!params)
               ; if variadic, use variadic handling code

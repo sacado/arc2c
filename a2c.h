@@ -78,7 +78,7 @@ typedef struct {
 #define ASTR(o) (((obj*)(o))[0] == T_STR)
 int AFN(obj o){
 	obj* op = (obj*)(o);
-	return o[0] == T_FN || o[0] == T_KFN || o[0] == T_LKFN;
+	return op[0] == T_FN || op[0] == T_KFN || op[0] == T_LKFN;
 }
 #define ATBL(o) (((obj*)(o))[0] == T_TBL)
 #define AFLOAT(o) (((obj*)(o))[0] == T_FLOAT)

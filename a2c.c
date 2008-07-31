@@ -34,6 +34,7 @@ obj SYM2OBJ (char * s){ /* Find a symbol, or save it if it's the first time */
   syms[nsyms]        = malloc (sizeof(symbol)); /* Symbols never go away, then can be malloc-ed */
   syms[nsyms]->type  = T_SYM;
   syms[nsyms]->value = (char *) malloc (strlen (s) + 1);
+  syms[nsyms]->global = NULL; //let eval handle this
   strcpy (syms[nsyms]->value, s);
 
   return (obj) syms[nsyms++];

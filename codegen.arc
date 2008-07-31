@@ -15,7 +15,8 @@
                        (++ constant-count)]
      code-gen nil
      compile-all-lambdas nil
-     compile-constants nil)
+     compile-constants nil
+     is-symeval-used nil)
 
   ; make sure global-vars includes call*
   (unless (some [is _!id _!uid 'call*]
@@ -73,6 +74,9 @@
           (aprim ast)
             (let args ast!subx
               (if
+                (is ast!op '%symeval)
+                  (do (assert is-symeval-used)
+                    (list (cg-args args stack-env) " SYMEVAL();"))
                 (is ast!op '%apply)
                   (list (cg-args args stack-env) " APPLY();")
                 (is ast!op '%string-ref)
@@ -209,6 +213,18 @@
               "}\n")
         ; no constants; dummy initialize
         "\n#define init_constants()\n")
+      (if is-symeval-used
+          (list "void init_symeval(void){\nstruct symbol* symp;\n"
+                (let i -1
+                  (mapeach var global-vars
+                    (++ i)
+                    (list
+                      "symp = (struct symbol*) SYM2OBJ("
+                         (tostring:write (coerce var!uid 'string)) ");\n"
+                      "symp->global = &GLOBAL(" i ");\n")))
+                "}\n")
+          ; no symeval; dummy initialize
+          "\n#define init_symeval()\n")
       code-prefix*
       code-execute*
       code

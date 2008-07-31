@@ -30,6 +30,7 @@ typedef struct {
 typedef struct {
   long type; /* T_SYM */
   char * value; /* UTF-8 chars */
+  obj * global; /*value assigned to global*/
 } symbol;
 
 typedef struct {
@@ -90,6 +91,10 @@ int AFN(obj o){
 
 obj DBL2OBJ (double d);
 obj SYM2OBJ (char * s); /* Find a symbol, or save it if it's the first time */
+
+#define SYMEVAL()\
+	{obj y = TOS();\
+	TOS() = ((symbol*) y)->global ? *(((symbol*) y)->global) : NILOBJ; }
 
 #define GLOBAL(i) global[i]
 #define LOCAL(i) stack[i]

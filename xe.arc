@@ -141,6 +141,14 @@
           (make-lam (list:xe (cons 'do body) new-cte) params))
         (err "fn expects a parameter list"))))) initial-ctes*)
 
+(push (make-macro 'symeval
+  (fn (e cte)
+    (if (isnt 2 (len e)) (err "symeval expects 1 arg"))
+    (let (_ form) e
+      (if (caris form 'quote)
+          (make-ref '() (new-global (cadr form)))
+          (make-prim (list:xe form cte) '%symeval))))) initial-ctes*)
+
 (def make-initial-cte ()
   initial-ctes*)
 

@@ -372,6 +372,8 @@ void explore_heap(obj from){
         case T_FLOAT:
           break;
         case T_FN:
+	case T_KFN:
+	case T_LKFN:
           fn = pfrom;
 
           for (i = 0 ; i < fn[1]; i++)

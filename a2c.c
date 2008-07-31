@@ -459,6 +459,7 @@ obj gc_malloc (size_t size){
 int main (int argc, char * argv[]) {
   gc_init();
   init_constants();
+  init_symeval();
   execute(0);
   return 0;
 }

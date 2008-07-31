@@ -214,12 +214,12 @@
         ; no constants; dummy initialize
         "\n#define init_constants()\n")
       (if is-symeval-used
-          (list "void init_symeval(void){\nstruct symbol* symp;\n"
+          (list "void init_symeval(void){\nsymbol* symp;\n"
                 (let i -1
                   (mapeach var global-vars
                     (++ i)
                     (list
-                      "symp = (struct symbol*) SYM2OBJ("
+                      "symp = (symbol*) SYM2OBJ("
                          (tostring:write (coerce var!uid 'string)) ");\n"
                       "symp->global = &GLOBAL(" i ");\n")))
                 "}\n")

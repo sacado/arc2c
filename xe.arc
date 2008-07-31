@@ -146,7 +146,7 @@
     (if (isnt 2 (len e)) (err "symeval expects 1 arg"))
     (let (_ form) e
       (if (caris form 'quote)
-          (make-ref '() (new-global (cadr form)))
+          (make-ref '() (xe-lookup (cadr form) '()))
           (make-prim (list:xe form cte) '%symeval))))) initial-ctes*)
 
 (def make-initial-cte ()
